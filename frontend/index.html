@@ -306,8 +306,8 @@
   <script type="text/babel">
     const { useState, useEffect } = React;
 
-    // ===== КОНФИГ API =====
-    const API_URL = 'https://gigantvpn-1.onrender.com/api';
+    // ===== КОНФИГ API (указываем твой бэкенд на Render) =====
+    const API_URL = 'https://gigantvpn.onrender.com/api';
     const USER_TELEGRAM_ID = 123456789;
 
     // ===== НИЖНЯЯ ПАНЕЛЬ =====
@@ -488,7 +488,7 @@
               setPlans(data);
               if (data.length > 0) setSelectedPlan(data[0]);
             } else {
-              // Заглушка, если API не отвечает
+              // fallback
               const fallbackPlans = [
                 {id: 1, name: '7 дней', price: 79, days: 7, badge: null, per_day: '11.3'},
                 {id: 2, name: '1 месяц', price: 199, days: 30, badge: null, per_day: '6.6'},
@@ -558,10 +558,6 @@
 
       if (loading) {
         return <div style={{textAlign: 'center', padding: '40px'}}>⏳ Загрузка тарифов...</div>;
-      }
-
-      if (plans.length === 0) {
-        return <div style={{textAlign: 'center', padding: '40px'}}>❌ Тарифы временно недоступны</div>;
       }
 
       const cp = selectedPlan;
@@ -1268,7 +1264,6 @@
       return (
         <div style={{padding: '20px 16px 100px', minHeight: '100vh'}}>
           <div style={{maxWidth: '400px', margin: '0 auto'}}>
-            
             <div style={{display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px'}}>
               <button onClick={onBack} className="btn-back">←</button>
               <h1 style={{fontSize: '22px', fontWeight: 700, margin: 0}}>📱 Устройства</h1>
