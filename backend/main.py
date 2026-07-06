@@ -194,7 +194,7 @@ class CreatePayment(BaseModel):
 
 
 # ==================== Роуты ====================
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 async def read_index():
     if not os.path.exists(INDEX_PATH):
         return JSONResponse(status_code=404, content={"error": "index.html not found"})
