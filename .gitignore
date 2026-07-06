@@ -2,3 +2,7 @@
 *.db
 users.json
 payments.json
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
