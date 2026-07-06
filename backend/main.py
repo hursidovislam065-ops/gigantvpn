@@ -339,3 +339,28 @@ async def admin_grant(request: Request):
         return {"ok": True, "subscription_until": user.subscription_until.isoformat()}
     finally:
         db.close()
+
+
+# ==================== ОДНОРАЗОВЫЙ ENDPOINT ====================
+@app.get("/api/init-db")
+async def init_db():
+    """Удалить после первого использования!"""
+    try:
+        Base.metadata.create_all(bind=engine)
+        db = SessionLocal()
+        try:
+            if db.query(Plan).count() == 0:
+                db.add_all([
+                    Plan(id="1month", name="1 месяц", duration_days=30, price=199),
+                    Plan(id="3month", name="3 месяца", duration_days=90, price=499),
+                    Plan(id="6month", name="6 месяцев", duration_days=180, price=899),
+                    Plan(id="12month", name="12 месяцев", duration_days=365, price=1599),
+                ])
+                db.commit()
+            plans_count = db.query(Plan).count()
+            users_count = db.query(User).count()
+        finally:
+            db.close()
+        return {"ok": True, "plans_count": plans_count, "users_count": users_count, "message": "Tables ready"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
