@@ -13,17 +13,30 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     headers['X-Telegram-Init-Data'] = initData;
   }
 
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers,
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: 'Ошибка сервера' }));
-    throw new Error(error.detail || `HTTP ${response.status}`);
+  try {
+    const response = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers,
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Ошибка сервера' }));
+      throw new Error(error.detail || `HTTP ${response.status}`);
+    }
+
+    return response.json();
+  } catch (err: any) {
+    if (err.name === 'AbortError') {
+      throw new Error('Сервер не отвечает. Бэкенд может просыпаться...');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return response.json();
 }
 
 // Users

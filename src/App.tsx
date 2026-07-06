@@ -25,6 +25,7 @@ export function App() {
   const [userData, setUserData] = useState<User | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadingPhase, setLoadingPhase] = useState<'init' | 'waking'>('init');
   const currentPageRef = useRef<PageId>('home');
 
   const go = useCallback((p: PageId) => {
@@ -77,7 +78,7 @@ export function App() {
         setUserData(user);
       } catch (registerErr) {
         console.error('registerUser also failed', registerErr);
-        setLoadError('Сервер недоступен. Проверьте, запущен ли бэкенд (port 8000).');
+        setLoadError('Сервер недоступен. Возможно, бэкенд просыпается — попробуйте через 30 секунд.');
       }
     } finally {
       setInitialLoading(false);
@@ -86,6 +87,8 @@ export function App() {
 
   useEffect(() => {
     refreshUserData();
+    const timer = setTimeout(() => setLoadingPhase('waking'), 4000);
+    return () => clearTimeout(timer);
   }, [refreshUserData]);
 
   if (initialLoading) {
@@ -102,7 +105,9 @@ export function App() {
           boxShadow: '0 0 40px rgba(0, 212, 255, 0.5)',
           marginBottom: '16px',
         }}>G</div>
-        <p style={{ fontSize: '14px', opacity: 0.5 }}>Загрузка...</p>
+        <p style={{ fontSize: '14px', opacity: 0.5 }}>
+          {loadingPhase === 'init' ? 'Загрузка...' : 'Бэкенд просыпается, подождите...'}
+        </p>
       </div>
     );
   }
