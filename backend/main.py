@@ -12,7 +12,6 @@ import hmac
 import hashlib
 import urllib.parse
 import logging
-from contextlib import asynccontextmanager
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -66,14 +65,29 @@ class Plan(Base):
 
 
 # ==================== Lifespan ====================
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup: заполнить тарифы если их нет
+    # Shutdown
     if engine:
+        engine.dispose()
+
+
+
+def init_db():
+    """Lazy DB initialization"""
+    global engine, SessionLocal
+    if engine is not None:
+        return
+    if not DATABASE_URL:
+        logger.error("DATABASE_URL not set")
+        return
+    try:
+        engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+        SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+        Base.metadata.create_all(bind=engine)
         db = SessionLocal()
         try:
             if db.query(Plan).count() == 0:
                 db.add_all([
+                    Plan(id="7days", name="7 дней", duration_days=7, price=79),
                     Plan(id="1month", name="1 месяц", duration_days=30, price=199),
                     Plan(id="3month", name="3 месяца", duration_days=90, price=499),
                     Plan(id="6month", name="6 месяцев", duration_days=180, price=899),
@@ -82,13 +96,17 @@ async def lifespan(app: FastAPI):
                 db.commit()
         finally:
             db.close()
-    yield
-    # Shutdown
-    if engine:
-        engine.dispose()
+        logger.info("DB initialized with tables and plans")
+    except Exception as e:
+        logger.error(f"DB init error: {e}")
+        engine = None
+        SessionLocal = None
 
 
-app = FastAPI(lifespan=lifespan)
+# Вызываем init_db при старте
+init_db()
+
+app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
