@@ -1,0 +1,4 @@
+.env
+*.db
+users.json
+payments.json
