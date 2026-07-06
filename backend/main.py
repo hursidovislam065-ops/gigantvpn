@@ -19,7 +19,7 @@ app = FastAPI(title="GigantVPN API")
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "").split(",") if os.getenv("CORS_ORIGINS") else [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://gigantvpn-fci34x0rq-hursidovislam065-ops-projects.vercel.app",
+    "https://gigantvpn2-ilbyqrzhl-hursidovislam065-ops-projects.vercel.app",
 ]
 
 app.add_middleware(
