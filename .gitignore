@@ -1,6 +1,8 @@
-node_modules/
-dist/
 .env
 *.db
+users.json
+payments.json
+.venv/
 __pycache__/
 *.pyc
+.DS_Store
