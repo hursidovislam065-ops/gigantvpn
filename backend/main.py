@@ -3,20 +3,93 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from datetime import datetime, timedelta
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Float, ForeignKey
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker, relationship
 import os
-import json
 import uuid
 import hmac
 import hashlib
 import urllib.parse
 import logging
+from contextlib import asynccontextmanager
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI()
+# ==================== База данных ====================
+DATABASE_URL = os.getenv("DATABASE_URL", "")
+# Render иногда даёт postgres://, SQLAlchemy хочет postgresql://
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-# CORS — только свои домены
+engine = None
+SessionLocal = None
+Base = declarative_base()
+
+if DATABASE_URL:
+    engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+    SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    Base.metadata.create_all(bind=engine)
+    logger.info("✅ Database connected")
+else:
+    logger.warning("⚠️ DATABASE_URL not set, using in-memory storage")
+
+
+# ==================== Модели ====================
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, index=True)
+    telegram_id = Column(Integer, unique=True, index=True, nullable=False)
+    username = Column(String, nullable=True)
+    first_name = Column(String, nullable=True)
+    referrer_id = Column(Integer, nullable=True)
+    subscription_until = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.now)
+
+class Payment(Base):
+    __tablename__ = "payments"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(Integer, ForeignKey("users.telegram_id"), nullable=False)
+    plan_id = Column(String, nullable=False)
+    amount = Column(Float, nullable=False)
+    status = Column(String, default="pending")
+    created_at = Column(DateTime, default=datetime.now)
+    confirmed_at = Column(DateTime, nullable=True)
+
+class Plan(Base):
+    __tablename__ = "plans"
+    id = Column(String, primary_key=True)
+    name = Column(String, nullable=False)
+    duration_days = Column(Integer, nullable=False)
+    price = Column(Float, nullable=False)
+
+
+# ==================== Lifespan ====================
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: заполнить тарифы если их нет
+    if engine:
+        db = SessionLocal()
+        try:
+            if db.query(Plan).count() == 0:
+                db.add_all([
+                    Plan(id="1month", name="1 месяц", duration_days=30, price=199),
+                    Plan(id="3month", name="3 месяца", duration_days=90, price=499),
+                    Plan(id="6month", name="6 месяцев", duration_days=180, price=899),
+                    Plan(id="12month", name="12 месяцев", duration_days=365, price=1599),
+                ])
+                db.commit()
+        finally:
+            db.close()
+    yield
+    # Shutdown
+    if engine:
+        engine.dispose()
+
+
+app = FastAPI(lifespan=lifespan)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -31,26 +104,20 @@ app.add_middleware(
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 INDEX_PATH = os.path.join(BASE_DIR, "frontend", "index.html")
-USERS_FILE = os.path.join(BASE_DIR, "users.json")
-PAYMENTS_FILE = os.path.join(BASE_DIR, "payments.json")
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 ADMIN_IDS = [int(x) for x in os.getenv("ADMIN_IDS", "").split(",") if x.strip().isdigit()]
 
 
-# ============ Утилиты ============
-def load_json(path, default):
-    if not os.path.exists(path):
-        return default
+# ==================== Утилиты ====================
+def get_db():
+    if not SessionLocal:
+        raise HTTPException(status_code=503, detail="Database not configured")
+    db = SessionLocal()
     try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return default
-
-def save_json(path, data):
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+        yield db
+    finally:
+        db.close()
 
 def verify_telegram_init_data(init_data: str):
     if not BOT_TOKEN or not init_data:
@@ -64,14 +131,12 @@ def verify_telegram_init_data(init_data: str):
         secret_key = hmac.new(b"WebAppData", BOT_TOKEN.encode(), hashlib.sha256).digest()
         calculated = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
         if calculated == hash_value:
-            user_data = json.loads(parsed.get("user", "{}"))
-            return user_data
+            return json.loads(parsed.get("user", "{}")) if 'json' in dir() else __import__('json').loads(parsed.get("user", "{}"))
         return None
     except Exception as e:
         logger.error(f"initData verify error: {e}")
         return None
 
-# Простой rate limit (in-memory)
 from collections import defaultdict
 from time import time
 rate_limit_store = defaultdict(list)
@@ -85,7 +150,7 @@ def check_rate_limit(ip: str, max_requests: int = 30, window: int = 60) -> bool:
     return True
 
 
-# ============ Middleware ============
+# ==================== Middleware ====================
 @app.middleware("http")
 async def log_and_limit(request: Request, call_next):
     client_ip = request.client.host if request.client else "unknown"
@@ -97,7 +162,7 @@ async def log_and_limit(request: Request, call_next):
     return response
 
 
-# ============ Модели ============
+# ==================== Модели Pydantic ====================
 class RegisterUser(BaseModel):
     telegram_id: int
     username: str | None = None
@@ -110,7 +175,7 @@ class CreatePayment(BaseModel):
     amount: float
 
 
-# ============ Роуты ============
+# ==================== Роуты ====================
 @app.get("/")
 async def read_index():
     if not os.path.exists(INDEX_PATH):
@@ -122,109 +187,155 @@ async def health():
     return {
         "status": "ok",
         "index_exists": os.path.exists(INDEX_PATH),
+        "db_connected": engine is not None,
         "admin_configured": len(ADMIN_IDS) > 0,
     }
 
 @app.get("/api/users/{telegram_id}")
 async def get_user(telegram_id: int):
-    users = load_json(USERS_FILE, {})
-    user = users.get(str(telegram_id))
-    if not user:
-        return JSONResponse(status_code=404, content={"error": "User not found"})
-    return user
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.telegram_id == telegram_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return {
+            "telegram_id": user.telegram_id,
+            "username": user.username,
+            "first_name": user.first_name,
+            "referrer_id": user.referrer_id,
+            "subscription_until": user.subscription_until.isoformat() if user.subscription_until else None,
+            "created_at": user.created_at.isoformat(),
+        }
+    finally:
+        db.close()
 
 @app.post("/api/users/register")
 async def register_user(data: RegisterUser):
-    users = load_json(USERS_FILE, {})
-    tid = str(data.telegram_id)
-    if tid in users:
-        return users[tid]
-    user = {
-        "telegram_id": data.telegram_id,
-        "username": data.username,
-        "first_name": data.first_name,
-        "referrer_id": data.referrer_id,
-        "subscription_until": None,
-        "created_at": datetime.now().isoformat(),
-    }
-    users[tid] = user
-    save_json(USERS_FILE, users)
-    return user
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.telegram_id == data.telegram_id).first()
+        if user:
+            return {
+                "telegram_id": user.telegram_id,
+                "username": user.username,
+                "first_name": user.first_name,
+                "subscription_until": user.subscription_until.isoformat() if user.subscription_until else None,
+            }
+        user = User(
+            telegram_id=data.telegram_id,
+            username=data.username,
+            first_name=data.first_name,
+            referrer_id=data.referrer_id,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        return {
+            "telegram_id": user.telegram_id,
+            "username": user.username,
+            "first_name": user.first_name,
+            "subscription_until": None,
+        }
+    finally:
+        db.close()
 
 @app.get("/api/users/referral/stats/{telegram_id}")
 async def referral_stats(telegram_id: int):
-    users = load_json(USERS_FILE, {})
-    refs = [u for u in users.values() if u.get("referrer_id") == telegram_id]
-    return {
-        "telegram_id": telegram_id,
-        "referral_count": len(refs),
-        "referrals": refs,
-        "referral_link": f"https://t.me/gigantvpn_bot?start=ref_{telegram_id}",
-    }
+    db = SessionLocal()
+    try:
+        refs = db.query(User).filter(User.referrer_id == telegram_id).all()
+        return {
+            "telegram_id": telegram_id,
+            "referral_count": len(refs),
+            "referrals": [
+                {"telegram_id": r.telegram_id, "first_name": r.first_name, "username": r.username}
+                for r in refs
+            ],
+            "referral_link": f"https://t.me/gigantvpn_bot?start=ref_{telegram_id}",
+        }
+    finally:
+        db.close()
 
 @app.get("/api/plans")
 async def get_plans():
-    return [
-        {"id": "1month", "name": "1 месяц", "duration_days": 30, "price": 199},
-        {"id": "3month", "name": "3 месяца", "duration_days": 90, "price": 499},
-        {"id": "6month", "name": "6 месяцев", "duration_days": 180, "price": 899},
-        {"id": "12month", "name": "12 месяцев", "duration_days": 365, "price": 1599},
-    ]
+    db = SessionLocal()
+    try:
+        plans = db.query(Plan).all()
+        return [
+            {"id": p.id, "name": p.name, "duration_days": p.duration_days, "price": p.price}
+            for p in plans
+        ]
+    finally:
+        db.close()
 
 @app.post("/api/payments/create")
 async def create_payment(data: CreatePayment):
-    payment_id = str(uuid.uuid4())
-    payment = {
-        "payment_id": payment_id,
-        "user_id": data.user_id,
-        "plan_id": data.plan_id,
-        "amount": data.amount,
-        "status": "pending",
-        "created_at": datetime.now().isoformat(),
-    }
-    payments = load_json(PAYMENTS_FILE, {})
-    payments[payment_id] = payment
-    save_json(PAYMENTS_FILE, payments)
-    return payment
+    db = SessionLocal()
+    try:
+        payment = Payment(
+            user_id=data.user_id,
+            plan_id=data.plan_id,
+            amount=data.amount,
+            status="pending",
+        )
+        db.add(payment)
+        db.commit()
+        db.refresh(payment)
+        return {
+            "payment_id": payment.id,
+            "user_id": payment.user_id,
+            "plan_id": payment.plan_id,
+            "amount": payment.amount,
+            "status": payment.status,
+        }
+    finally:
+        db.close()
 
 @app.post("/api/payments/confirm/{payment_id}")
 async def confirm_payment(payment_id: str):
-    payments = load_json(PAYMENTS_FILE, {})
-    payment = payments.get(payment_id)
-    if not payment:
-        raise HTTPException(status_code=404, detail="Payment not found")
-    payment["status"] = "confirmed"
-    payment["confirmed_at"] = datetime.now().isoformat()
-    payments[payment_id] = payment
-    save_json(PAYMENTS_FILE, payments)
+    db = SessionLocal()
+    try:
+        payment = db.query(Payment).filter(Payment.id == payment_id).first()
+        if not payment:
+            raise HTTPException(status_code=404, detail="Payment not found")
+        payment.status = "confirmed"
+        payment.confirmed_at = datetime.now()
+        db.commit()
 
-    users = load_json(USERS_FILE, {})
-    user = users.get(str(payment["user_id"]))
-    if user:
-        sub_end = datetime.now() + timedelta(days=30)
-        user["subscription_until"] = sub_end.isoformat()
-        users[str(payment["user_id"])] = user
-        save_json(USERS_FILE, users)
-    return payment
+        # Активируем подписку
+        user = db.query(User).filter(User.telegram_id == payment.user_id).first()
+        if user:
+            plan = db.query(Plan).filter(Plan.id == payment.plan_id).first()
+            days = plan.duration_days if plan else 30
+            base = user.subscription_until if user.subscription_until and user.subscription_until > datetime.now() else datetime.now()
+            user.subscription_until = base + timedelta(days=days)
+            db.commit()
+        return {"ok": True, "payment_id": payment.id, "status": "confirmed"}
+    finally:
+        db.close()
 
 @app.post("/api/admin/grant")
 async def admin_grant(request: Request):
-    """Выдача подписки админом"""
     if not BOT_TOKEN:
         raise HTTPException(status_code=503, detail="Bot token not configured")
     init_data = request.headers.get("X-Telegram-Init-Data", "")
+    import json as _json
     user = verify_telegram_init_data(init_data)
     if not user or user.get("id") not in ADMIN_IDS:
         raise HTTPException(status_code=403, detail="Forbidden")
+
     body = await request.json()
     target_id = body.get("telegram_id")
     days = body.get("days", 30)
-    users = load_json(USERS_FILE, {})
-    target = users.get(str(target_id))
-    if not target:
-        raise HTTPException(status_code=404, detail="User not found")
-    sub_end = datetime.now() + timedelta(days=days)
-    target["subscription_until"] = sub_end.isoformat()
-    users[str(target_id)] = target
-    save_json(USERS_FILE, users)
-    return {"ok": True, "subscription_until": sub_end.isoformat()}
+
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.telegram_id == target_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        base = user.subscription_until if user.subscription_until and user.subscription_until > datetime.now() else datetime.now()
+        user.subscription_until = base + timedelta(days=days)
+        db.commit()
+        return {"ok": True, "subscription_until": user.subscription_until.isoformat()}
+    finally:
+        db.close()
