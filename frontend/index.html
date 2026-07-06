@@ -1,0 +1,1688 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GigantVPN</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { background: #050810; color: white; font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif; min-height: 100vh; overflow-x: hidden; position: relative; }
+
+    .animated-bg {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: -2;
+      background: 
+        radial-gradient(ellipse 80% 50% at 20% 0%, rgba(0, 212, 255, 0.18), transparent 50%),
+        radial-gradient(ellipse 60% 40% at 80% 30%, rgba(0, 180, 150, 0.15), transparent 50%),
+        radial-gradient(ellipse 50% 50% at 50% 100%, rgba(0, 100, 200, 0.12), transparent 50%),
+        linear-gradient(180deg, #050810 0%, #0A0E1A 50%, #0F1420 100%);
+      animation: bgFlow 20s ease-in-out infinite;
+    }
+    @keyframes bgFlow {
+      0%, 100% { 
+        background: 
+          radial-gradient(ellipse 80% 50% at 20% 0%, rgba(0, 212, 255, 0.18), transparent 50%),
+          radial-gradient(ellipse 60% 40% at 80% 30%, rgba(0, 180, 150, 0.15), transparent 50%),
+          radial-gradient(ellipse 50% 50% at 50% 100%, rgba(0, 100, 200, 0.12), transparent 50%),
+          linear-gradient(180deg, #050810 0%, #0A0E1A 50%, #0F1420 100%);
+      }
+      33% { 
+        background: 
+          radial-gradient(ellipse 80% 50% at 70% 20%, rgba(0, 212, 255, 0.22), transparent 50%),
+          radial-gradient(ellipse 60% 40% at 20% 60%, rgba(0, 180, 150, 0.18), transparent 50%),
+          radial-gradient(ellipse 50% 50% at 80% 80%, rgba(0, 100, 200, 0.15), transparent 50%),
+          linear-gradient(180deg, #050810 0%, #0A0E1A 50%, #0F1420 100%);
+      }
+      66% { 
+        background: 
+          radial-gradient(ellipse 80% 50% at 40% 30%, rgba(0, 212, 255, 0.2), transparent 50%),
+          radial-gradient(ellipse 60% 40% at 90% 70%, rgba(0, 180, 150, 0.16), transparent 50%),
+          radial-gradient(ellipse 50% 50% at 10% 90%, rgba(0, 100, 200, 0.14), transparent 50%),
+          linear-gradient(180deg, #050810 0%, #0A0E1A 50%, #0F1420 100%);
+      }
+    }
+
+    .particles { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+    .particle { position: absolute; width: 2px; height: 2px; background: white; border-radius: 50%; opacity: 0.3; box-shadow: 0 0 4px rgba(0, 212, 255, 0.6); animation: float linear infinite; }
+    @keyframes float {
+      0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+      10% { opacity: 0.7; }
+      90% { opacity: 0.7; }
+      100% { transform: translateY(-10vh) translateX(30px); opacity: 0; }
+    }
+
+    .glass {
+      background: linear-gradient(135deg, rgba(19, 24, 38, 0.7) 0%, rgba(26, 32, 48, 0.3) 100%);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+    .glass-pro {
+      background: linear-gradient(135deg, rgba(0, 212, 255, 0.12) 0%, rgba(0, 180, 150, 0.05) 50%, rgba(0, 128, 255, 0.04) 100%);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1.5px solid rgba(0, 212, 255, 0.4);
+      border-radius: 20px;
+      box-shadow: 0 0 40px rgba(0, 212, 255, 0.2), inset 0 1px 0 rgba(0, 212, 255, 0.2);
+      position: relative;
+      overflow: hidden;
+    }
+    .glass-pro::before {
+      content: '';
+      position: absolute;
+      top: -50%; left: -50%;
+      width: 200%; height: 200%;
+      background: linear-gradient(45deg, transparent, rgba(0, 212, 255, 0.1), transparent);
+      animation: shine 4s linear infinite;
+    }
+    @keyframes shine {
+      0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+      100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+    }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+    @keyframes glow { 0%, 100% { box-shadow: 0 0 30px rgba(0, 212, 255, 0.4); } 50% { box-shadow: 0 0 50px rgba(0, 212, 255, 0.7); } }
+    @keyframes floatY { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    .anim-up { animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+    .anim-pulse { animation: pulse 2.5s ease-in-out infinite; }
+    .anim-glow { animation: glow 3s ease-in-out infinite; }
+    .anim-float { animation: floatY 3s ease-in-out infinite; }
+
+    .text-accent { color: #00D4FF; }
+    .text-gray { color: #8B95A7; }
+
+    .btn-back {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: white; font-size: 18px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.3s;
+    }
+    .btn-back:hover { background: rgba(255, 255, 255, 0.1); transform: scale(1.05); }
+
+    .icon-card {
+      background: linear-gradient(145deg, rgba(19, 24, 38, 0.6) 0%, rgba(26, 32, 48, 0.3) 100%);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 20px;
+      padding: 20px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+    .icon-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(0, 212, 255, 0.2);
+      box-shadow: 0 8px 40px rgba(0, 212, 255, 0.1);
+    }
+    .icon-card:active { transform: scale(0.95); }
+
+    .icon-card .icon-wrap {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 12px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+    }
+    .icon-card .icon-wrap.purple { 
+      background: linear-gradient(135deg, rgba(120, 80, 255, 0.2), rgba(120, 80, 255, 0.05)); 
+      border: 1px solid rgba(120, 80, 255, 0.2); 
+    }
+    .icon-card .icon-wrap.blue { 
+      background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 212, 255, 0.05)); 
+      border: 1px solid rgba(0, 212, 255, 0.2); 
+    }
+    .icon-card .card-title { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+    .icon-card .card-sub { font-size: 11px; opacity: 0.4; }
+
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+      background: rgba(10, 14, 26, 0.85);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      border-top: 1px solid rgba(255,255,255,0.04);
+      padding: 8px 0 14px;
+    }
+    .bottom-nav .nav-inner {
+      max-width: 400px; margin: 0 auto;
+      display: flex; justify-content: space-around;
+    }
+    .bottom-nav .nav-btn {
+      background: none; border: none;
+      display: flex; flex-direction: column; align-items: center;
+      gap: 2px; cursor: pointer;
+      color: #6E7A8A;
+      transition: all 0.3s;
+      padding: 4px 16px;
+      position: relative;
+      min-width: 56px;
+    }
+    .bottom-nav .nav-btn .nav-icon {
+      font-size: 22px;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .bottom-nav .nav-btn .nav-label {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+    }
+    .bottom-nav .nav-btn.active {
+      color: #00D4FF;
+    }
+    .bottom-nav .nav-btn.active .nav-icon {
+      transform: scale(1.15) translateY(-2px);
+    }
+    .bottom-nav .nav-btn.active::after {
+      content: '';
+      position: absolute;
+      top: -4px;
+      width: 20px;
+      height: 3px;
+      border-radius: 4px;
+      background: linear-gradient(90deg, #00D4FF, #0080FF);
+      box-shadow: 0 0 12px rgba(0,212,255,0.5);
+    }
+
+    .btn-primary {
+      width: 100%; padding: 16px 20px; font-size: 15px; font-weight: 700;
+      background: linear-gradient(135deg, #00D4FF 0%, #0080FF 50%, #00D4FF 100%);
+      background-size: 200% 200%;
+      color: #000;
+      border: none; border-radius: 16px;
+      cursor: pointer;
+      box-shadow: 0 8px 30px rgba(0, 212, 255, 0.35);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      animation: btnGrad 3s ease-in-out infinite;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-primary:active { transform: scale(0.95); }
+    @keyframes btnGrad {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    .btn-primary .shimmer {
+      position: absolute; top: 0; left: -100%;
+      width: 60%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transform: skewX(-25deg);
+      animation: shimmer 3.5s ease-in-out infinite;
+    }
+    @keyframes shimmer {
+      0% { left: -100%; }
+      100% { left: 200%; }
+    }
+
+    .btn-secondary {
+      width: 100%; padding: 16px 20px; font-size: 15px; font-weight: 600;
+      background: rgba(19, 24, 38, 0.4);
+      border: 1.5px solid rgba(0, 212, 255, 0.35);
+      color: #00D4FF;
+      border-radius: 16px;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s;
+    }
+    .btn-secondary:active { transform: scale(0.95); }
+
+    .nav-item-row {
+      width: 100%; padding: 14px 16px; background: transparent;
+      border: none; border-radius: 14px; color: white;
+      display: flex; align-items: center; gap: 12px;
+      cursor: pointer; text-align: left; transition: all 0.3s;
+    }
+    .nav-item-row:hover { background: rgba(0, 212, 255, 0.05); }
+    .nav-item-row:active { transform: scale(0.98); }
+
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #2a2f45;
+      border-radius: 12px;
+      transition: 0.3s;
+    }
+    .toggle-slider.active {
+      background: #00D4FF;
+      box-shadow: 0 0 20px rgba(0,212,255,0.3);
+    }
+    .toggle-slider:before {
+      content: '';
+      position: absolute;
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: 0.3s;
+    }
+    .toggle-slider.active:before {
+      transform: translateX(20px);
+    }
+  </style>
+</head>
+<body>
+  <div class="animated-bg"></div>
+  <div class="particles" id="particles"></div>
+  <div id="root"></div>
+  <script>
+    const pEl = document.getElementById('particles');
+    for (let i = 0; i < 20; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.style.left = Math.random() * 100 + '%';
+      p.style.animationDelay = Math.random() * 8 + 's';
+      p.style.animationDuration = (8 + Math.random() * 6) + 's';
+      pEl.appendChild(p);
+    }
+  </script>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // ===== КОНФИГ API =====
+    const API_URL = 'http://localhost:8000/api';
+    const USER_TELEGRAM_ID = 123456789;
+
+    // ===== НИЖНЯЯ ПАНЕЛЬ =====
+    function BottomNav({current, onChange}) {
+      const items = [
+        {id: 'home', icon: '🏠', label: 'Главная'},
+        {id: 'referral', icon: '🎁', label: 'Рефералы'},
+        {id: 'support', icon: '🎧', label: 'Поддержка'},
+        {id: 'settings', icon: '⚙️', label: 'Настройки'},
+      ];
+      return (
+        <nav className="bottom-nav">
+          <div className="nav-inner">
+            {items.map((item) => (
+              <button
+                key={item.id}
+                className={'nav-btn' + (current === item.id ? ' active' : '')}
+                onClick={() => onChange(item.id)}
+              >
+                <span className="nav-icon">{item.icon}</span>
+                <span className="nav-label">{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </nav>
+      );
+    }
+
+    // ===== ГЛАВНАЯ =====
+    function Home({onPay, onSettings, onInvite, onSupport, onVpnSetup, userData, onRefresh}) {
+      const [localUserData, setLocalUserData] = useState(userData);
+      const [loading, setLoading] = useState(!userData);
+      const [error, setError] = useState(null);
+
+      useEffect(() => {
+        if (userData) {
+          setLocalUserData(userData);
+          setLoading(false);
+        }
+      }, [userData]);
+
+      useEffect(() => {
+        if (!userData) {
+          const fetchUser = async () => {
+            try {
+              const response = await fetch(`${API_URL}/users/${USER_TELEGRAM_ID}`);
+              if (!response.ok) {
+                if (response.status === 404) {
+                  const registerRes = await fetch(`${API_URL}/users/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      telegram_id: USER_TELEGRAM_ID,
+                      username: 'telegram_user',
+                      first_name: 'Пользователь'
+                    })
+                  });
+                  if (registerRes.ok) {
+                    const userRes = await fetch(`${API_URL}/users/${USER_TELEGRAM_ID}`);
+                    const data = await userRes.json();
+                    setLocalUserData(data);
+                    if (onRefresh) onRefresh();
+                  }
+                }
+              } else {
+                const data = await response.json();
+                setLocalUserData(data);
+              }
+            } catch (err) {
+              setError(err.message);
+            } finally {
+              setLoading(false);
+            }
+          };
+          fetchUser();
+        }
+      }, []);
+
+      if (loading) {
+        return (
+          <div style={{padding: '20px 16px 100px', minHeight: '100vh'}}>
+            <div style={{maxWidth: '400px', margin: '0 auto', textAlign: 'center', paddingTop: '100px'}}>
+              <div style={{fontSize: '48px', marginBottom: '16px'}}>⏳</div>
+              <p style={{fontSize: '16px', opacity: 0.6}}>Загрузка...</p>
+            </div>
+          </div>
+        );
+      }
+
+      if (error) {
+        return (
+          <div style={{padding: '20px 16px 100px', minHeight: '100vh'}}>
+            <div style={{maxWidth: '400px', margin: '0 auto', textAlign: 'center', paddingTop: '100px'}}>
+              <div style={{fontSize: '48px', marginBottom: '16px'}}>❌</div>
+              <p style={{fontSize: '16px', opacity: 0.6}}>Ошибка: {error}</p>
+              <button onClick={() => window.location.reload()} style={{padding: '12px 24px', borderRadius: '12px', background: '#00D4FF', color: '#000', border: 'none', cursor: 'pointer', marginTop: '16px'}}>Обновить</button>
+            </div>
+          </div>
+        );
+      }
+
+      const balance = localUserData?.balance || 0;
+      const subscriptionUntil = localUserData?.subscription_until;
+      const isSubscribed = subscriptionUntil && new Date(subscriptionUntil) > new Date();
+
+      return (
+        <div style={{padding: '20px 16px 100px', minHeight: '100vh'}}>
+          <div style={{maxWidth: '400px', margin: '0 auto'}}>
+            <div className="glass-pro anim-up" style={{padding: '32px 20px', marginBottom: '12px', textAlign: 'center'}}>
+              <div className="anim-float" style={{width: '72px', height: '72px', margin: '0 auto 12px', background: 'linear-gradient(135deg, #00D4FF, #0080FF)', borderRadius: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px', fontWeight: 'bold', color: 'black', boxShadow: '0 0 40px rgba(0, 212, 255, 0.5), 0 8px 20px rgba(0, 212, 255, 0.3)'}}>G</div>
+              <h1 className="anim-up" style={{fontSize: '24px', fontWeight: 800, margin: '0 0 4px', letterSpacing: '-0.5px', animationDelay: '0.1s'}}>GigantVPN</h1>
+              <p className="anim-up text-gray" style={{fontSize: '12px', margin: 0, animationDelay: '0.15s'}}>Быстрый и надёжный VPN</p>
+            </div>
+
+            <div className="glass anim-up" style={{padding: '20px', marginBottom: '12px', textAlign: 'center', animationDelay: '0.2s'}}>
+              <p className="text-gray" style={{fontSize: '11px', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '1.5px'}}>Баланс</p>
+              <p style={{fontSize: '36px', fontWeight: 800, margin: 0, background: 'linear-gradient(135deg, #fff, #8B95A7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'}}>{balance}₽</p>
+            </div>
+
+            <div className="glass anim-up" style={{padding: '16px 20px', marginBottom: '16px', animationDelay: '0.25s'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px'}}>
+                <span style={{fontSize: '16px'}}>{isSubscribed ? '✅' : '⚠️'}</span>
+                <span style={{color: isSubscribed ? '#00E676' : '#FF6B6B', fontSize: '13px', fontWeight: 600}}>
+                  {isSubscribed ? `Подписка до ${new Date(subscriptionUntil).toLocaleDateString()}` : 'Подписка истекла'}
+                </span>
+              </div>
+              <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
+                <span style={{background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', padding: '6px 12px', borderRadius: '20px', fontSize: '11px'}}>📱 {localUserData?.devices_count || 3} устройства</span>
+                <span style={{background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', padding: '6px 12px', borderRadius: '20px', fontSize: '11px'}}>⚡ {localUserData?.network || 'LTE'}</span>
+                <span style={{background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', padding: '6px 12px', borderRadius: '20px', fontSize: '11px'}}>∞ Безлимит</span>
+              </div>
+            </div>
+
+            <button 
+              onClick={() => onPay(localUserData?.id)} 
+              className="btn-primary anim-up" 
+              style={{animationDelay: '0.3s'}}
+            >
+              <span className="shimmer"></span>
+              💳 Оплатить подписку
+            </button>
+
+            <button onClick={onVpnSetup} className="btn-secondary anim-up" style={{marginTop: '10px', animationDelay: '0.35s'}}>
+              📱 Настроить VPN
+            </button>
+
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '16px'}}>
+              <div onClick={onInvite} className="icon-card anim-up" style={{animationDelay: '0.4s'}}>
+                <div className="icon-wrap purple">👥</div>
+                <div className="card-title">Пригласи друга</div>
+                <div className="card-sub">Получи бонус</div>
+              </div>
+              <div onClick={onSupport} className="icon-card anim-up" style={{animationDelay: '0.45s'}}>
+                <div className="icon-wrap blue">🎧</div>
+                <div className="card-title">Поддержка</div>
+                <div className="card-sub">Напишите нам</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ===== ПОДПИСКА =====
+    function Subscription({onBack, userId, onPaymentSuccess}) {
+      const [plans, setPlans] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [selectedPlan, setSelectedPlan] = useState(null);
+      const [devices, setDevices] = useState(3);
+      const [isProcessing, setIsProcessing] = useState(false);
+
+      useEffect(() => {
+        const fetchPlans = async () => {
+          try {
+            const response = await fetch(`${API_URL}/plans`);
+            if (response.ok) {
+              const data = await response.json();
+              setPlans(data);
+              if (data.length > 0) setSelectedPlan(data[0]);
+            } else {
+              // Заглушка, если API не отвечает
+              const fallbackPlans = [
+                {id: 1, name: '7 дней', price: 79, days: 7, badge: null, per_day: '11.3'},
+                {id: 2, name: '1 месяц', price: 199, days: 30, badge: null, per_day: '6.6'},
+                {id: 3, name: '3 месяца', price: 539, days: 90, badge: '−10%', per_day: '6.0'},
+                {id: 4, name: '6 месяцев', price: 999, days: 180, badge: '−16%', per_day: '5.6'},
+                {id: 5, name: '12 месяцев', price: 1799, days: 365, badge: '−25%', per_day: '4.9'},
+              ];
+              setPlans(fallbackPlans);
+              setSelectedPlan(fallbackPlans[0]);
+            }
+          } catch (err) {
+            console.error('Ошибка загрузки тарифов:', err);
+          } finally {
+            setLoading(false);
+          }
+        };
+        fetchPlans();
+      }, []);
+
+      const handlePayment = async () => {
+        if (!selectedPlan || !userId) {
+          alert('Ошибка: выберите тариф');
+          return;
+        }
+
+        setIsProcessing(true);
+        try {
+          const extraDevices = Math.max(0, devices - 3);
+          const extraTotal = extraDevices * 50 * (selectedPlan.days / 30);
+          const totalPrice = selectedPlan.price + extraTotal;
+
+          const paymentRes = await fetch(`${API_URL}/payments/create`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              user_id: userId,
+              amount: totalPrice,
+              description: `Подписка ${selectedPlan.name}`
+            })
+          });
+
+          if (!paymentRes.ok) {
+            throw new Error('Ошибка создания платежа');
+          }
+
+          const paymentData = await paymentRes.json();
+          
+          const confirmRes = await fetch(`${API_URL}/payments/confirm/${paymentData.payment_id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+
+          if (confirmRes.ok) {
+            alert('✅ Оплата успешно прошла! Подписка активирована.');
+            if (onPaymentSuccess) onPaymentSuccess();
+            onBack();
+          } else {
+            alert('❌ Ошибка подтверждения платежа');
+          }
+
+        } catch (err) {
+          alert('❌ Ошибка: ' + err.message);
+        } finally {
+          setIsProcessing(false);
+        }
+      };
+
+      if (loading) {
+        return <div style={{textAlign: 'center', padding: '40px'}}>⏳ Загрузка тарифов...</div>;
+      }
+
+      if (plans.length === 0) {
+        return <div style={{textAlign: 'center', padding: '40px'}}>❌ Тарифы временно недоступны</div>;
+      }
+
+      const cp = selectedPlan;
+      const extraDevices = Math.max(0, devices - 3);
+      const extraTotal = extraDevices * 50 * (cp.days / 30);
+      const totalPrice = cp.price + extraTotal;
+
+      return (
+        <div style={{padding: '20px 16px 100px', minHeight: '100vh'}}>
+          <div style={{maxWidth: '400px', margin: '0 auto'}}>
+            <button onClick={onBack} className="btn-back" style={{marginBottom: '20px'}}>←</button>
+            <h1 style={{fontSize: '24px', fontWeight: 800, marginBottom: '4px', background: 'linear-gradient(135deg, #fff, #00D4FF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'}}>Выберите тариф</h1>
+            <p style={{fontSize: '13px', opacity: 0.5, marginBottom: '20px'}}>Доступ ко всему миру и высокий уровень защиты</p>
+
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '16px'}}>
+              {plans.map((pl) => (
+                <button 
+                  key={pl.id} 
+                  onClick={() => setSelectedPlan(pl)} 
+                  className={selectedPlan?.id === pl.id ? 'glass-pro' : 'glass'} 
+                  style={{padding: '14px 8px', cursor: 'pointer', textAlign: 'center', color: 'white', position: 'relative', transition: 'all 0.3s'}}
+                >
+                  {selectedPlan?.id === pl.id && <div style={{position: 'absolute', top: '4px', right: '4px', width: '16px', height: '16px', borderRadius: '50%', background: '#00D4FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '8px', color: 'black', fontWeight: 700}}>✓</div>}
+                  {pl.badge && <div style={{position: 'absolute', top: '4px', right: selectedPlan?.id === pl.id ? '22px' : '4px', background: 'rgba(0,230,118,0.15)', border: '1px solid rgba(0,230,118,0.3)', color: '#00E676', fontSize: '8px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px'}}>{pl.badge}</div>}
+                  <p style={{fontSize: '11px', fontWeight: 600, margin: '0 0 4px'}}>{pl.name}</p>
+                  <p style={{fontSize: '18px', fontWeight: 800, margin: 0, color: selectedPlan?.id === pl.id ? '#00D4FF' : 'white'}}>{pl.price} ₽</p>
+                  <p style={{fontSize: '9px', opacity: 0.4, margin: '4px 0 0'}}>{pl.per_day} ₽/день</p>
+                </button>
+              ))}
+            </div>
+
+            <div className="glass" style={{padding: '16px 20px', marginBottom: '16px'}}>
+              <p style={{fontSize: '13px', fontWeight: 600, margin: '0 0 6px'}}>Устройства</p>
+              <p style={{fontSize: '11px', opacity: 0.5, margin: '0 0 12px'}}>Включено 3 устройства, доп. +50 ₽/мес</p>
+              <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                <button onClick={() => setDevices(Math.max(1, devices - 1))} style={{width: '36px', height: '36px', borderRadius: '12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'white', fontSize: '18px', cursor: 'pointer'}}>−</button>
+                <span style={{fontSize: '24px', fontWeight: 700, minWidth: '40px', textAlign: 'center', color: '#00D4FF'}}>{devices}</span>
+                <button onClick={() => setDevices(devices + 1)} style={{width: '36px', height: '36px', borderRadius: '12px', background: 'linear-gradient(135deg, #00D4FF, #0080FF)', border: 'none', color: 'black', fontSize: '18px', fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,212,255,0.3)'}}>+</button>
+              </div>
+            </div>
+
+            <div className="glass-pro" style={{padding: '16px 20px', marginBottom: '16px'}}>
+              <div style={{display: 'flex', justifyContent: 'space-between'}}><span>Итого:</span><span style={{fontSize: '20px', fontWeight: 800, color: '#00D4FF'}}>{totalPrice.toFixed(0)} ₽</span></div>
+              <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '12px', opacity: 0.5}}><span>{cp.name}</span><span>{devices} устройства</span></div>
+            </div>
+
+            <button 
+              onClick={handlePayment} 
+              className="btn-primary"
+              disabled={isProcessing}
+              style={{opacity: isProcessing ? 0.6 : 1}}
+            >
+              {isProcessing ? '⏳ Обработка...' : `💳 Оплатить ${totalPrice.toFixed(0)} ₽`}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // ===== РЕФЕРАЛЬНАЯ ПРОГРАММА =====
+    function Referral({onBack}) {
+      const [copied, setCopied] = useState(false);
+      const [referralData, setReferralData] = useState(null);
+      const [loading, setLoading] = useState(true);
+
+      useEffect(() => {
+        const fetchReferralData = async () => {
+          try {
+            const response = await fetch(`${API_URL}/users/referral/stats/${USER_TELEGRAM_ID}`);
+            if (response.ok) {
+              const data = await response.json();
+              setReferralData(data);
+            } else {
+              setReferralData({
+                total_referrals: 0,
+                active_referrals: 0,
+                total_earned: 0,
+                referral_link: `https://t.me/gigantvpn_bot?start=ref_${USER_TELEGRAM_ID}`
+              });
+            }
+          } catch (err) {
+            setReferralData({
+              total_referrals: 0,
+              active_referrals: 0,
+              total_earned: 0,
+              referral_link: `https://t.me/gigantvpn_bot?start=ref_${USER_TELEGRAM_ID}`
+            });
+          } finally {
+            setLoading(false);
+          }
+        };
+        fetchReferralData();
+      }, []);
+
+      const referralLink = referralData?.referral_link || `https://t.me/gigantvpn_bot?start=ref_${USER_TELEGRAM_ID}`;
+
+      const copyLink = () => {
+        navigator.clipboard.writeText(referralLink);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      };
+
+      if (loading) {
+        return (
+          <div style={{padding: '20px 16px 100px', minHeight: '100vh'}}>
+            <div style={{maxWidth: '400px', margin: '0 auto', textAlign: 'center', paddingTop: '100px'}}>
+              <div style={{fontSize: '48px', marginBottom: '16px'}}>⏳</div>
+              <p style={{fontSize: '16px', opacity: 0.6}}>Загрузка...</p>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div style={{padding: '20px 16px 100px', minHeight: '100vh'}}>
+          <div style={{maxWidth: '400px', margin: '0 auto'}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px'}}>
+              <button onClick={onBack} className="btn-back">←</button>
+              <h1 style={{fontSize: '22px', fontWeight: 700, margin: 0}}>👥 Реферальная программа</h1>
+            </div>
+
+            <div className="glass-pro anim-up" style={{padding: '24px 20px', marginBottom: '16px', textAlign: 'center'}}>
+              <div style={{
+                width: '72px', height: '72px',
+                margin: '0 auto 12px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #00D4FF, #0080FF)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '32px',
+                boxShadow: '0 0 40px rgba(0, 212, 255, 0.3)'
+              }}>🎁</div>
+              <h2 style={{fontSize: '18px', fontWeight: 700, margin: '0 0 4px'}}>
+                Приглашай друзей и зарабатывай!
+              </h2>
+              <p style={{fontSize: '12px', opacity: 0.5, margin: '0 0 16px', lineHeight: 1.4}}>
+                Получай <strong style={{color: '#00D4FF'}}>30%</strong> от каждого пополнения баланса твоими рефералами
+              </p>
+              
+              <div style={{
+                background: 'rgba(0,0,0,0.3)',
+                borderRadius: '14px',
+                padding: '12px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '8px',
+                border: '1px solid rgba(255,255,255,0.06)'
+              }}>
+                <span style={{
+                  fontSize: '12px',
+                  opacity: 0.7,
+                  wordBreak: 'break-all',
+                  fontFamily: 'monospace',
+                  flex: 1
+                }}>
+                  {referralLink}
+                </span>
+                <button
+                  onClick={copyLink}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '10px',
+                    background: copied ? 'rgba(0, 230, 118, 0.2)' : 'rgba(0, 212, 255, 0.15)',
+                    border: copied ? '1px solid rgba(0, 230, 118, 0.3)' : '1px solid rgba(0, 212, 255, 0.2)',
+                    color: copied ? '#00E676' : '#00D4FF',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.3s'
+                  }}
+                >
+                  {copied ? '✅ Скопировано' : '📋 Копировать'}
+                </button>
+              </div>
+            </div>
+
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '16px'}}>
+              <div className="glass anim-up" style={{padding: '16px', textAlign: 'center'}}>
+                <p style={{fontSize: '24px', fontWeight: 800, color: '#00D4FF', margin: 0}}>{referralData?.total_referrals || 0}</p>
+                <p style={{fontSize: '11px', opacity: 0.5, margin: '4px 0 0'}}>Всего приглашено</p>
+              </div>
+              <div className="glass anim-up" style={{padding: '16px', textAlign: 'center'}}>
+                <p style={{fontSize: '24px', fontWeight: 800, color: '#00E676', margin: 0}}>{referralData?.active_referrals || 0}</p>
+                <p style={{fontSize: '11px', opacity: 0.5, margin: '4px 0 0'}}>Активных</p>
+              </div>
+              <div className="glass anim-up" style={{padding: '16px', textAlign: 'center'}}>
+                <p style={{fontSize: '24px', fontWeight: 800, color: '#FFD93D', margin: 0}}>{referralData?.total_earned || 0} ₽</p>
+                <p style={{fontSize: '11px', opacity: 0.5, margin: '4px 0 0'}}>Заработано</p>
+              </div>
+            </div>
+
+            <button 
+              onClick={() => {
+                if (navigator.share) {
+                  navigator.share({
+                    title: 'GigantVPN',
+                    text: 'Используй GigantVPN — быстрый и надёжный VPN! Переходи по ссылке:',
+                    url: referralLink
+                  });
+                } else {
+                  copyLink();
+                }
+              }}
+              className="anim-up" style={{
+                width: '100%',
+                padding: '16px 20px',
+                fontSize: '15px',
+                fontWeight: 700,
+                background: 'linear-gradient(135deg, #00D4FF 0%, #0080FF 100%)',
+                color: '#000',
+                border: 'none',
+                borderRadius: '16px',
+                cursor: 'pointer',
+                boxShadow: '0 8px 30px rgba(0, 212, 255, 0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              <span>📤</span> Поделиться ссылкой
+            </button>
+
+          </div>
+        </div>
+      );
+    }
+
+    // ===== ПОДДЕРЖКА =====
+    function Support({onBack}) {
+      const [selectedQuestion, setSelectedQuestion] = useState(null);
+
+      const faq = [
+        {
+          id: 1,
+          title: 'VPN не подключается',
+          answer: 'Проверьте подключение к интернету и попробуйте сменить локацию. Если проблема сохраняется — перезапустите приложение.'
+        },
+        {
+          id: 2,
+          title: 'Как установить VPN?',
+          answer: 'Откройте раздел "Настройка VPN", скачайте приложение и импортируйте ключ доступа.'
+        },
+        {
+          id: 3,
+          title: 'Интернет стал медленнее',
+          answer: 'Скорость может зависеть от выбранной локации. Попробуйте подключиться к ближайшему серверу.'
+        },
+        {
+          id: 4,
+          title: 'Нашли баг или ошибку?',
+          answer: 'Опишите проблему в чате поддержки — мы постараемся помочь как можно быстрее.'
+        }
+      ];
+
+      const handleQuestionClick = (id) => {
+        setSelectedQuestion(selectedQuestion === id ? null : id);
+      };
+
+      return (
+        <div style={{padding: '20px 16px 100px', minHeight: '100vh'}}>
+          <div style={{maxWidth: '400px', margin: '0 auto'}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px'}}>
+              <button onClick={onBack} className="btn-back">←</button>
+              <h1 style={{fontSize: '22px', fontWeight: 700, margin: 0}}>🎧 Поддержка</h1>
+            </div>
+
+            <div style={{display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px'}}>
+              {faq.map((item) => {
+                const isOpen = selectedQuestion === item.id;
+                return (
+                  <div key={item.id} className="glass anim-up" style={{overflow: 'hidden', transition: 'all 0.3s'}}>
+                    <button
+                      onClick={() => handleQuestionClick(item.id)}
+                      style={{
+                        width: '100%',
+                        padding: '16px 20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        cursor: 'pointer',
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'white',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        textAlign: 'left'
+                      }}
+                    >
+                      <span>{item.id}. {item.title}</span>
+                      <span style={{
+                        fontSize: '18px',
+                        transition: 'transform 0.3s',
+                        transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                        opacity: 0.5
+                      }}>▼</span>
+                    </button>
+                    
+                    {isOpen && (
+                      <div style={{
+                        padding: '0 20px 16px 20px',
+                        fontSize: '13px',
+                        opacity: 0.7,
+                        lineHeight: 1.5,
+                        borderTop: '1px solid rgba(255,255,255,0.04)',
+                        paddingTop: '12px'
+                      }}>
+                        {item.answer}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="glass-pro anim-up" style={{
+              padding: '24px 20px',
+              textAlign: 'center'
+            }}>
+              <div style={{
+                width: '56px',
+                height: '56px',
+                margin: '0 auto 12px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #00D4FF, #0080FF)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '28px',
+                boxShadow: '0 0 30px rgba(0, 212, 255, 0.3)'
+              }}>💬</div>
+              <h3 style={{fontSize: '18px', fontWeight: 700, margin: '0 0 4px'}}>Нужна помощь?</h3>
+              <p style={{fontSize: '13px', opacity: 0.5, margin: '0 0 16px', lineHeight: 1.4}}>
+                Напишите в чат, если возникли проблемы или вопросы.
+              </p>
+              <button
+                onClick={() => window.open('https://t.me/gigantvpn_bot', '_blank')}
+                style={{
+                  padding: '14px 32px',
+                  borderRadius: '14px',
+                  background: 'linear-gradient(135deg, #00D4FF, #0080FF)',
+                  color: '#000',
+                  fontWeight: 700,
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '15px',
+                  boxShadow: '0 4px 20px rgba(0, 212, 255, 0.3)',
+                  transition: 'all 0.3s'
+                }}
+              >
+                Пройти в чат →
+              </button>
+            </div>
+
+          </div>
+        </div>
+      );
+    }
+
+    // ===== НАСТРОЙКИ =====
+    function Settings({onBack, onDocuments, onSubscription, onDevices, userData, onRefresh}) {
+      const [email, setEmail] = useState('');
+      const [isEmailLinked, setIsEmailLinked] = useState(false);
+      const [showEmailInput, setShowEmailInput] = useState(false);
+      const [notifications, setNotifications] = useState(true);
+      const [loading, setLoading] = useState(false);
+
+      useEffect(() => {
+        if (userData?.email) {
+          setEmail(userData.email);
+          setIsEmailLinked(true);
+        }
+      }, [userData]);
+
+      const handleLinkEmail = async () => {
+        if (!email || !email.includes('@')) {
+          alert('Введите корректный email');
+          return;
+        }
+        setLoading(true);
+        try {
+          const response = await fetch(`${API_URL}/users/link-email`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              telegram_id: USER_TELEGRAM_ID,
+              email: email
+            })
+          });
+          if (response.ok) {
+            setIsEmailLinked(true);
+            setShowEmailInput(false);
+            alert('✅ Email успешно привязан!');
+            if (onRefresh) onRefresh();
+          } else {
+            alert('❌ Ошибка привязки email');
+          }
+        } catch (err) {
+          alert('❌ Ошибка соединения с сервером');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const handleUnlinkEmail = async () => {
+        if (!confirm('Вы уверены, что хотите отвязать email?')) return;
+        setLoading(true);
+        try {
+          const response = await fetch(`${API_URL}/users/unlink-email`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              telegram_id: USER_TELEGRAM_ID
+            })
+          });
+          if (response.ok) {
+            setIsEmailLinked(false);
+            setEmail('');
+            alert('✅ Email отвязан');
+            if (onRefresh) onRefresh();
+          }
+        } catch (err) {
+          alert('❌ Ошибка');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const toggleNotifications = () => {
+        setNotifications(!notifications);
+      };
+
+      return (
+        <div style={{padding: '20px 16px 100px', minHeight: '100vh'}}>
+          <div style={{maxWidth: '400px', margin: '0 auto'}}>
+            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', marginBottom: '20px', padding: '8px 0'}}>
+              <button onClick={onBack} className="btn-back" style={{position: 'absolute', left: 0}}>←</button>
+              <div className="glass" style={{padding: '8px 24px', borderRadius: '20px'}}>
+                <h1 style={{fontSize: '16px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
+                  <span style={{color: '#8B95A7'}}>⚙</span> Настройки
+                </h1>
+              </div>
+            </div>
+
+            <div className="glass-pro anim-up" style={{padding: '20px', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', animationDelay: '0.1s'}}>
+              <div style={{flex: 1, paddingRight: '12px'}}>
+                <h2 style={{fontSize: '17px', fontWeight: 700, margin: '0 0 4px'}}>Подписка</h2>
+                <p className="text-gray" style={{fontSize: '12px', margin: 0, lineHeight: 1.4}}>
+                  {userData?.subscription_until && new Date(userData.subscription_until) > new Date()
+                    ? `Активна до ${new Date(userData.subscription_until).toLocaleDateString()}`
+                    : 'Не активна'}
+                </p>
+              </div>
+              <button 
+                onClick={onSubscription}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '12px',
+                  background: 'rgba(0, 212, 255, 0.1)',
+                  color: '#00D4FF',
+                  border: '1px solid rgba(0, 212, 255, 0.2)',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 600
+                }}
+              >
+                Настроить →
+              </button>
+            </div>
+
+            <div className="glass anim-up" style={{padding: '12px 0', marginBottom: '12px', animationDelay: '0.2s'}}>
+              <h3 style={{fontSize: '16px', fontWeight: 700, margin: '0 20px 12px'}}>Аккаунт</h3>
+              
+              <div className="nav-item-row" style={{justifyContent: 'space-between'}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                  <span style={{width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(0, 212, 255, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>🔔</span>
+                  <span style={{fontSize: '14px'}}>Уведомления</span>
+                </div>
+                <div className="toggle-switch">
+                  <input type="checkbox" checked={notifications} onChange={toggleNotifications} />
+                  <span className={'toggle-slider' + (notifications ? ' active' : '')}></span>
+                </div>
+              </div>
+
+              <button 
+                onClick={onDevices}
+                className="nav-item-row"
+                style={{display: 'flex', alignItems: 'center', gap: '12px'}}
+              >
+                <span style={{width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(0, 212, 255, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>💻</span>
+                <span style={{flex: 1, fontSize: '14px'}}>Устройства</span>
+                <span className="text-gray">→</span>
+              </button>
+            </div>
+
+            <div className="glass anim-up" style={{padding: '12px 0', marginBottom: '12px', animationDelay: '0.3s'}}>
+              <h3 style={{fontSize: '16px', fontWeight: 700, margin: '0 20px 12px'}}>Способы входа</h3>
+              
+              <div style={{padding: '0 16px'}}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '10px 12px',
+                  borderRadius: '12px',
+                  background: isEmailLinked ? 'rgba(0, 230, 118, 0.05)' : 'rgba(255,255,255,0.02)',
+                  border: isEmailLinked ? '1px solid rgba(0, 230, 118, 0.2)' : '1px solid rgba(255,255,255,0.04)'
+                }}>
+                  <span style={{width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(0, 212, 255, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>📧</span>
+                  <div style={{flex: 1}}>
+                    <p style={{fontSize: '14px', margin: 0}}>Email</p>
+                    <p style={{fontSize: '12px', opacity: 0.4, margin: 0}}>
+                      {isEmailLinked ? email : 'Не привязан'}
+                    </p>
+                  </div>
+                  {!isEmailLinked ? (
+                    <button 
+                      onClick={() => setShowEmailInput(!showEmailInput)}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '8px',
+                        background: 'rgba(0, 212, 255, 0.1)',
+                        color: '#00D4FF',
+                        border: '1px solid rgba(0, 212, 255, 0.2)',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: 600
+                      }}
+                    >
+                      Привязать
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={handleUnlinkEmail}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '8px',
+                        background: 'rgba(255,107,107,0.1)',
+                        color: '#FF6B6B',
+                        border: '1px solid rgba(255,107,107,0.2)',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: 600
+                      }}
+                      disabled={loading}
+                    >
+                      {loading ? '⏳' : 'Отвязать'}
+                    </button>
+                  )}
+                </div>
+                
+                {showEmailInput && !isEmailLinked && (
+                  <div style={{
+                    display: 'flex',
+                    gap: '8px',
+                    marginTop: '8px',
+                    padding: '0 12px'
+                  }}>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Введите email"
+                      style={{
+                        flex: 1,
+                        padding: '10px 14px',
+                        borderRadius: '10px',
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        color: 'white',
+                        fontSize: '14px',
+                        outline: 'none'
+                      }}
+                    />
+                    <button
+                      onClick={handleLinkEmail}
+                      style={{
+                        padding: '10px 16px',
+                        borderRadius: '10px',
+                        background: 'linear-gradient(135deg, #00D4FF, #0080FF)',
+                        color: '#000',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        fontSize: '13px'
+                      }}
+                      disabled={loading}
+                    >
+                      {loading ? '⏳' : '✅'}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '10px 16px',
+                margin: '8px 16px 0',
+                borderRadius: '12px',
+                background: 'rgba(0, 212, 255, 0.05)',
+                border: '1px solid rgba(0, 212, 255, 0.15)'
+              }}>
+                <span style={{width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #00D4FF, #0080FF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', color: 'black'}}>✈</span>
+                <div style={{flex: 1}}>
+                  <p style={{fontSize: '14px', margin: 0}}>Telegram</p>
+                  <p style={{fontSize: '12px', opacity: 0.4, margin: 0}}>id: {USER_TELEGRAM_ID}</p>
+                </div>
+                <span style={{
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #00D4FF, #0080FF)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '11px',
+                  color: 'black',
+                  fontWeight: 700,
+                  boxShadow: '0 0 15px rgba(0, 212, 255, 0.5)'
+                }}>✓</span>
+              </div>
+            </div>
+
+            <div className="glass anim-up" style={{padding: '12px 0', marginBottom: '12px', animationDelay: '0.4s'}}>
+              <h3 style={{fontSize: '16px', fontWeight: 700, margin: '0 20px 12px'}}>Информация</h3>
+              
+              <button 
+                onClick={onDocuments}
+                className="nav-item-row"
+                style={{display: 'flex', alignItems: 'center', gap: '12px'}}
+              >
+                <span style={{width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(0, 212, 255, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>📄</span>
+                <span style={{flex: 1, fontSize: '14px'}}>Пользовательское соглашение</span>
+                <span className="text-gray">→</span>
+              </button>
+              
+              <button 
+                className="nav-item-row"
+                style={{display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px'}}
+                onClick={() => window.open('https://t.me/gigantvpn_bot', '_blank')}
+              >
+                <span style={{width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(0, 212, 255, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>💬</span>
+                <span style={{flex: 1, fontSize: '14px'}}>Поддержка</span>
+                <span className="text-gray">↗</span>
+              </button>
+              
+              <button 
+                className="nav-item-row"
+                style={{display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px'}}
+                onClick={() => {
+                  if (navigator.share) {
+                    navigator.share({
+                      title: 'GigantVPN',
+                      text: 'Используй GigantVPN — быстрый и надёжный VPN!',
+                      url: 'https://t.me/gigantvpn_bot'
+                    });
+                  } else {
+                    alert('Поделитесь ссылкой: https://t.me/gigantvpn_bot');
+                  }
+                }}
+              >
+                <span style={{width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(0, 212, 255, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>📤</span>
+                <span style={{flex: 1, fontSize: '14px'}}>Поделиться</span>
+                <span className="text-gray">→</span>
+              </button>
+            </div>
+
+            <div style={{textAlign: 'center', padding: '8px 0'}}>
+              <p style={{fontSize: '11px', opacity: 0.2}}>GigantVPN v2.0.0</p>
+            </div>
+
+          </div>
+        </div>
+      );
+    }
+
+    // ===== УСТРОЙСТВА =====
+    function Devices({onBack, onAddDevice}) {
+      const [devices, setDevices] = useState([
+        {id: 1, name: 'Устройство 1', isActive: true},
+        {id: 2, name: 'Устройство 2', isActive: false},
+        {id: 3, name: 'Устройство 3', isActive: false},
+      ]);
+
+      const maxDevices = 5;
+      const activeDevices = devices.filter(d => d.isActive).length;
+
+      const toggleDevice = (deviceId) => {
+        setDevices(devices.map(d => 
+          d.id === deviceId ? {...d, isActive: !d.isActive} : d
+        ));
+      };
+
+      const resetAllDevices = () => {
+        if (!confirm('Сбросить все устройства? Это отключит VPN на всех устройствах.')) return;
+        setDevices(devices.map(d => ({...d, isActive: false})));
+      };
+
+      return (
+        <div style={{padding: '20px 16px 100px', minHeight: '100vh'}}>
+          <div style={{maxWidth: '400px', margin: '0 auto'}}>
+            
+            <div style={{display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px'}}>
+              <button onClick={onBack} className="btn-back">←</button>
+              <h1 style={{fontSize: '22px', fontWeight: 700, margin: 0}}>📱 Устройства</h1>
+            </div>
+
+            <div className="glass anim-up" style={{padding: '16px 20px', marginBottom: '12px'}}>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px'}}>
+                <h2 style={{fontSize: '16px', fontWeight: 700, margin: 0}}>Подключенные устройства</h2>
+                <span style={{
+                  fontSize: '13px',
+                  color: activeDevices > 0 ? '#00E676' : '#8B95A7'
+                }}>
+                  Активно: {activeDevices} {activeDevices === 1 ? 'устройство' : 'устройств'}
+                </span>
+              </div>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginTop: '4px'
+              }}>
+                <span style={{fontSize: '11px', opacity: 0.4}}>
+                  {devices.length} из {maxDevices} устройств
+                </span>
+                <button
+                  onClick={resetAllDevices}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    background: 'rgba(255,107,107,0.1)',
+                    color: '#FF6B6B',
+                    border: '1px solid rgba(255,107,107,0.2)',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: 500
+                  }}
+                >
+                  Сбросить все устройства
+                </button>
+              </div>
+            </div>
+
+            <div style={{display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px'}}>
+              {devices.map((device) => (
+                <div key={device.id} className="glass anim-up" style={{
+                  padding: '14px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  borderColor: device.isActive ? 'rgba(0, 230, 118, 0.2)' : 'rgba(255,255,255,0.04)',
+                  transition: 'all 0.3s'
+                }}>
+                  <div 
+                    onClick={() => toggleDevice(device.id)}
+                    style={{
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '6px',
+                      border: device.isActive ? '2px solid #00D4FF' : '2px solid rgba(255,255,255,0.2)',
+                      background: device.isActive ? 'rgba(0, 212, 255, 0.2)' : 'transparent',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                      transition: 'all 0.3s'
+                    }}
+                  >
+                    {device.isActive && (
+                      <span style={{color: '#00D4FF', fontSize: '14px'}}>✓</span>
+                    )}
+                  </div>
+
+                  <div style={{flex: 1}}>
+                    <p style={{fontSize: '14px', fontWeight: 600, margin: 0}}>{device.name}</p>
+                    {device.isActive && (
+                      <span style={{
+                        fontSize: '9px',
+                        padding: '2px 8px',
+                        borderRadius: '10px',
+                        background: 'rgba(0, 230, 118, 0.15)',
+                        color: '#00E676',
+                        fontWeight: 600
+                      }}>Активно</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={onAddDevice}
+              className="btn-secondary anim-up"
+              style={{
+                width: '100%',
+                padding: '14px',
+                fontSize: '14px',
+                borderStyle: 'dashed',
+                borderWidth: '2px',
+                borderColor: 'rgba(0, 212, 255, 0.3)',
+                background: 'rgba(0, 212, 255, 0.04)',
+                color: '#00D4FF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              <span style={{fontSize: '20px'}}>+</span> Добавить устройство
+              <span style={{fontSize: '11px', opacity: 0.4, fontWeight: 400}}>
+                ({devices.length}/{maxDevices})
+              </span>
+            </button>
+
+            <div style={{
+              marginTop: '12px',
+              padding: '12px 16px',
+              borderRadius: '12px',
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.04)',
+              textAlign: 'center'
+            }}>
+              <p style={{fontSize: '12px', opacity: 0.4, margin: 0}}>
+                {devices.length >= maxDevices 
+                  ? `🔒 Достигнут лимит (${maxDevices} устройств)` 
+                  : `📱 Можно добавить ещё ${maxDevices - devices.length} устройств`}
+              </p>
+            </div>
+
+          </div>
+        </div>
+      );
+    }
+
+    // ===== ДОКУМЕНТЫ =====
+    function Documents({onBack}) {
+      const [activeTab, setActiveTab] = useState('agreement');
+
+      const tabs = [
+        { id: 'agreement', label: '📄 Соглашение' },
+        { id: 'privacy', label: '🔒 Политика' }
+      ];
+
+      const content = {
+        agreement: {
+          title: 'Пользовательское соглашение',
+          sections: [
+            { title: '1. Общие положения', text: 'Настоящее Пользовательское соглашение регулирует отношения между владельцем Telegram-бота GigantVPN и физическим лицом, использующим функционал сервиса. Используя сервис, пользователь подтверждает согласие с условиями соглашения и Политикой конфиденциальности.' },
+            { title: '2. Предмет соглашения', text: 'Сервис предоставляет услуги VPN-доступа в сеть Интернет на возмездной основе. Пользователь получает защищенное соединение и возможность обхода блокировок через Telegram-бот при наличии подписки.' },
+            { title: '3. Условия регистрации и использования', text: 'Для использования сервиса необходимо авторизоваться в Telegram-боте. Идентификация осуществляется по Telegram ID. Новый пользователь получает бесплатный пробный период 3 дня. По завершении пробного периода требуется активация подписки.' },
+            { title: '4. Подписка и порядок оплаты', text: 'Оплата производится через платёжную систему, интегрированную в бот. Подписка продлевается автоматически, если пользователь не отключил автопродление. Стоимость и срок действия подписки отображаются в интерфейсе сервиса. День оплаты считается датой заключения договора возмездного оказания услуг.' },
+            { title: '5. Возврат средств', text: 'Сервис придерживается локальной политики возвратов. При неудовлетворённости качеством услуг можно потребовать возврата неиспользованных средств. Возврат осуществляется в течение 10 рабочих дней после обращения в поддержку.' },
+            { title: '6. Ограничения и запреты', text: 'Пользователю запрещается использовать сервис для: рассылки спама; DDoS-атак, фишинга и иных вредоносных действий; распространения вредоносного ПО; действий, нарушающих законодательство Российской Федерации. При нарушении условий доступ может быть ограничен без компенсации.' },
+            { title: '7. Ответственность сторон', text: 'Сервис предоставляется "как есть". Исполнитель не несёт ответственности за сбои сети Интернет, оборудование пользователя и блокировки третьих сторон. Исполнитель не отвечает за действия государственных органов, препятствующие оказанию услуг.' },
+            { title: '8. Поддержка', text: 'По вопросам и обращениям поддержка в Telegram: @gigantvpn_bot' }
+          ]
+        },
+        privacy: {
+          title: 'Политика конфиденциальности',
+          sections: [
+            { title: '1. Общие положения', text: 'Настоящая Политика определяет порядок обработки и защиты персональных данных пользователей Telegram-бота GigantVPN. Она разработана в соответствии с Федеральным законом РФ № 152-ФЗ «О персональных данных» и иными нормативными актами Российской Федерации. Используя сервис, пользователь подтверждает согласие с условиями Политики. При несогласии необходимо прекратить использование сервиса.' },
+            { title: '2. Персональные данные, собираемые сервисом', text: 'Сервис осуществляет минимальный сбор данных, необходимых для предоставления услуг. Обрабатывается исключительно Telegram ID пользователя. Сервис не ведет журналы активности, не собирает IP-адреса, историю подключений и передаваемый трафик.' },
+            { title: '3. Цели обработки данных', text: 'Персональные данные используются исключительно для: идентификации пользователя; предоставления доступа к VPN-услугам; обработки связи и поддержки; исполнения договорных обязательств.' },
+            { title: '4. Хранение и защита данных', text: 'Telegram ID хранится в защищённой базе данных. Доступ к данным ограничен и предоставляется только уполномоченным лицам. При прекращении использования сервиса данные удаляются в течение 30 календарных дней.' },
+            { title: '5. Передача данных третьим лицам', text: 'Персональные данные не передаются третьим лицам, за исключением случаев, предусмотренных законодательством Российской Федерации. В требуемых законом ситуациях передача осуществляется только на основании законного запроса уполномоченных органов.' },
+            { title: '6. Права пользователя', text: 'Пользователь имеет право: получать информацию об обработке своих персональных данных; требовать уточнения, блокирования или удаления данных; отзывать согласие на обработку персональных данных.' },
+            { title: '7. Контактная информация', text: 'По вопросам обработки и защиты персональных данных: поддержка в Telegram @gigantvpn_bot' }
+          ]
+        }
+      };
+
+      const currentContent = content[activeTab];
+
+      return (
+        <div style={{padding: '20px 16px 100px', minHeight: '100vh'}}>
+          <div style={{maxWidth: '400px', margin: '0 auto'}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px'}}>
+              <button onClick={onBack} className="btn-back">←</button>
+              <h1 style={{fontSize: '22px', fontWeight: 700, margin: 0}}>📋 Документы</h1>
+            </div>
+
+            <div className="glass" style={{padding: '6px', marginBottom: '16px', display: 'flex', gap: '4px'}}>
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  style={{
+                    flex: 1,
+                    padding: '10px 8px',
+                    borderRadius: '14px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: activeTab === tab.id ? '#00D4FF' : '#6E7A8A',
+                    background: activeTab === tab.id ? 'rgba(0, 212, 255, 0.12)' : 'transparent',
+                    border: activeTab === tab.id ? '1px solid rgba(0, 212, 255, 0.3)' : '1px solid transparent',
+                    transition: 'all 0.3s'
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="glass anim-up" style={{padding: '20px', marginBottom: '16px'}}>
+              <h2 style={{fontSize: '18px', fontWeight: 700, margin: '0 0 16px'}}>{currentContent.title}</h2>
+              {currentContent.sections.map((section, index) => (
+                <div key={index} style={{marginBottom: '16px'}}>
+                  <h3 style={{fontSize: '14px', fontWeight: 600, color: '#00D4FF', margin: '0 0 6px'}}>{section.title}</h3>
+                  <p style={{fontSize: '13px', opacity: 0.7, lineHeight: 1.6, margin: 0, whiteSpace: 'pre-line'}}>{section.text}</p>
+                  {index < currentContent.sections.length - 1 && <div style={{height: '1px', background: 'rgba(255,255,255,0.04)', marginTop: '12px'}} />}
+                </div>
+              ))}
+            </div>
+
+            <div className="glass" style={{padding: '16px 20px'}}>
+              <p style={{fontSize: '13px', fontWeight: 600, margin: '0 0 4px'}}>📱 Поддержка</p>
+              <p style={{fontSize: '12px', opacity: 0.5, margin: 0}}>По всем вопросам: <span style={{color: '#00D4FF'}}>@gigantvpn_bot</span></p>
+            </div>
+
+          </div>
+        </div>
+      );
+    }
+
+    // ===== НАСТРОИТЬ VPN =====
+    function VpnSetup({onBack}) {
+      const [activeTab, setActiveTab] = useState('iOS');
+      const [copied, setCopied] = useState(false);
+
+      const platforms = ['iOS', 'MacOS', 'Windows', 'Android'];
+      const subscribeUrl = 'https://subs.eu-ffffest.com/9ee1be541b8bd34';
+      const botUsername = '@gigantvpn_bot';
+      const botLink = 'https://t.me/gigantvpn_bot';
+
+      const downloadLinks = {
+        iOS: 'https://apps.apple.com/app/happ-vpn/id6473827591',
+        MacOS: 'https://apps.apple.com/app/happ-vpn/id6473827591',
+        Windows: 'https://github.com/happ-vpn/happ-windows/releases/latest',
+        Android: 'https://play.google.com/store/apps/details?id=com.happ.vpn'
+      };
+
+      const copyToClipboard = () => {
+        navigator.clipboard.writeText(subscribeUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      };
+
+      const openDownload = () => {
+        const link = downloadLinks[activeTab];
+        if (link) {
+          window.open(link, '_blank');
+        } else {
+          alert('Ссылка для этой платформы временно недоступна');
+        }
+      };
+
+      const openBot = () => {
+        window.open(botLink, '_blank');
+      };
+
+      return (
+        <div style={{padding: '20px 16px 100px', minHeight: '100vh'}}>
+          <div style={{maxWidth: '400px', margin: '0 auto'}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px'}}>
+              <button onClick={onBack} className="btn-back">←</button>
+              <h1 style={{fontSize: '22px', fontWeight: 700, margin: 0}}>🌐 VPN</h1>
+            </div>
+
+            <div className="glass" style={{padding: '8px', marginBottom: '20px', display: 'flex', gap: '6px', justifyContent: 'center'}}>
+              {platforms.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setActiveTab(p)}
+                  style={{
+                    flex: 1,
+                    padding: '10px 8px',
+                    borderRadius: '14px',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: activeTab === p ? '#00D4FF' : '#6E7A8A',
+                    background: activeTab === p ? 'rgba(0, 212, 255, 0.12)' : 'transparent',
+                    border: activeTab === p ? '1px solid rgba(0, 212, 255, 0.3)' : '1px solid transparent',
+                    transition: 'all 0.3s'
+                  }}
+                >
+                  {p === 'iOS' && '🍎'}
+                  {p === 'MacOS' && '💻'}
+                  {p === 'Windows' && '🪟'}
+                  {p === 'Android' && '🤖'}
+                  {' '}{p}
+                </button>
+              ))}
+            </div>
+
+            <div className="glass-pro anim-up" style={{padding: '20px', marginBottom: '12px'}}>
+              <div style={{display: 'flex', alignItems: 'flex-start', gap: '12px'}}>
+                <span style={{background: 'linear-gradient(135deg, #00D4FF, #0080FF)', color: 'black', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 800, flexShrink: 0, marginTop: '2px'}}>1</span>
+                <div style={{flex: 1}}>
+                  <h3 style={{fontSize: '15px', fontWeight: 700, margin: '0 0 4px'}}>Скачайте приложение <span style={{color: '#00D4FF'}}>Happ</span></h3>
+                  <p style={{fontSize: '12px', opacity: 0.5, margin: '0 0 12px', lineHeight: 1.4}}>Установите приложение на устройство, чтобы подключиться к VPN</p>
+                  <button onClick={openDownload} style={{padding: '12px 24px', borderRadius: '14px', background: 'linear-gradient(135deg, #00D4FF, #0080FF)', color: '#000', fontWeight: 700, border: 'none', cursor: 'pointer', fontSize: '14px', boxShadow: '0 4px 20px rgba(0, 212, 255, 0.3)', transition: 'all 0.3s'}}>⬇️ Скачать Happ</button>
+                </div>
+              </div>
+            </div>
+
+            <div className="glass anim-up" style={{padding: '20px', marginBottom: '12px'}}>
+              <div style={{display: 'flex', alignItems: 'flex-start', gap: '12px'}}>
+                <span style={{background: 'rgba(255,255,255,0.08)', color: 'white', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 800, flexShrink: 0, marginTop: '2px', border: '1px solid rgba(255,255,255,0.1)'}}>2</span>
+                <div style={{flex: 1}}>
+                  <h3 style={{fontSize: '15px', fontWeight: 700, margin: '0 0 4px'}}>Добавьте подписку</h3>
+                  <p style={{fontSize: '12px', opacity: 0.5, margin: '0 0 12px', lineHeight: 1.4}}>Скопируйте ссылку и вставьте её вручную в приложение</p>
+                  <div style={{background: 'rgba(0,0,0,0.3)', borderRadius: '12px', padding: '10px 14px', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', border: '1px solid rgba(255,255,255,0.04)'}}>
+                    <span style={{fontSize: '11px', opacity: 0.7, wordBreak: 'break-all', fontFamily: 'monospace'}}>{subscribeUrl}</span>
+                    <button onClick={copyToClipboard} style={{padding: '6px 14px', borderRadius: '8px', background: copied ? 'rgba(0, 230, 118, 0.2)' : 'rgba(0, 212, 255, 0.15)', border: copied ? '1px solid rgba(0, 230, 118, 0.3)' : '1px solid rgba(0, 212, 255, 0.2)', color: copied ? '#00E676' : '#00D4FF', fontSize: '12px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.3s'}}>{copied ? '✅ Скопировано' : '📋 Копировать'}</button>
+                  </div>
+                  <button style={{width: '100%', padding: '12px', borderRadius: '14px', background: 'rgba(0, 212, 255, 0.08)', color: '#00D4FF', fontWeight: 600, border: '1.5px dashed rgba(0, 212, 255, 0.3)', cursor: 'pointer', fontSize: '13px', transition: 'all 0.3s'}}>➕ Добавить подписку</button>
+                </div>
+              </div>
+            </div>
+
+            <div className="glass anim-up" style={{padding: '20px', marginBottom: '16px'}}>
+              <div style={{display: 'flex', alignItems: 'flex-start', gap: '12px'}}>
+                <span style={{background: 'rgba(0, 230, 118, 0.2)', color: '#00E676', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 800, flexShrink: 0, marginTop: '2px', border: '1px solid rgba(0, 230, 118, 0.2)'}}>✓</span>
+                <div style={{flex: 1}}>
+                  <h3 style={{fontSize: '15px', fontWeight: 700, margin: '0 0 4px', color: '#00E676'}}>Настройка завершена</h3>
+                  <p style={{fontSize: '12px', opacity: 0.5, margin: 0, lineHeight: 1.4}}>VPN подключен — пользуйтесь интернетом без ограничений</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="glass" style={{padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+                <span style={{fontSize: '24px'}}>🤖</span>
+                <div>
+                  <p style={{fontSize: '13px', fontWeight: 600, margin: 0}}>Наш бот</p>
+                  <p style={{fontSize: '11px', opacity: 0.4, margin: 0}}>{botUsername}</p>
+                </div>
+              </div>
+              <button onClick={openBot} style={{padding: '8px 16px', borderRadius: '12px', background: 'linear-gradient(135deg, #00D4FF, #0080FF)', color: '#000', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: '12px'}}>Перейти →</button>
+            </div>
+
+          </div>
+        </div>
+      );
+    }
+
+    // ===== APP =====
+    function App() {
+      const [page, setPage] = useState('home');
+      const [history, setHistory] = useState([]);
+      const [userData, setUserData] = useState(null);
+      const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+      const go = (p) => { setHistory([...history, page]); setPage(p); };
+      const back = () => { if (history.length > 0) { setPage(history[history.length - 1]); setHistory(history.slice(0, -1)); } };
+      
+      const refreshUserData = async () => {
+        try {
+          const response = await fetch(`${API_URL}/users/${USER_TELEGRAM_ID}`);
+          if (response.ok) {
+            const data = await response.json();
+            setUserData(data);
+            setRefreshTrigger(prev => prev + 1);
+          }
+        } catch (err) {
+          console.error('Ошибка обновления:', err);
+        }
+      };
+
+      useEffect(() => {
+        refreshUserData();
+      }, []);
+
+      return (
+        <div key={page}>
+          {page === 'home' && <Home 
+            onPay={() => go('subscription')}
+            onSettings={() => go('settings')}
+            onInvite={() => go('referral')}
+            onSupport={() => go('support')}
+            onVpnSetup={() => go('vpnsetup')}
+            userData={userData}
+            onRefresh={refreshUserData}
+          />}
+          {page === 'subscription' && (
+            <Subscription 
+              onBack={back} 
+              userId={userData?.id}
+              onPaymentSuccess={refreshUserData}
+            />
+          )}
+          {page === 'referral' && <Referral onBack={back} />}
+          {page === 'support' && <Support onBack={back} />}
+          {page === 'settings' && 
+            <Settings 
+              onBack={back} 
+              onDocuments={() => go('documents')}
+              onSubscription={() => go('subscription')}
+              onDevices={() => go('devices')}
+              userData={userData}
+              onRefresh={refreshUserData}
+            />
+          }
+          {page === 'devices' && <Devices onBack={back} onAddDevice={() => go('vpnsetup')} />}
+          {page === 'documents' && <Documents onBack={back} />}
+          {page === 'vpnsetup' && <VpnSetup onBack={back} />}
+          <BottomNav current={page} onChange={go} />
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
