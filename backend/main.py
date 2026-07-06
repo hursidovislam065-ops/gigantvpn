@@ -1,11 +1,11 @@
 from fastapi import FastAPI
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, JSONResponse
 import os
-import traceback
 
 app = FastAPI()
 
+# backend/main.py → /opt/render/project/src/backend/main.py
+# BASE_DIR = /opt/render/project/src/
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 INDEX_PATH = os.path.join(BASE_DIR, "frontend", "index.html")
 
@@ -15,21 +15,22 @@ async def health():
     return {
         "status": "ok",
         "base_dir": BASE_DIR,
+        "index_path": INDEX_PATH,
         "index_exists": os.path.exists(INDEX_PATH),
     }
 
 
 @app.get("/api/ls")
 async def list_files():
-    files = []
-    if os.path.exists(BASE_DIR):
-        for item in os.listdir(BASE_DIR):
-            full = os.path.join(BASE_DIR, item)
-            if os.path.isdir(full):
-                files.append(f"[DIR]  {item}/")
-            else:
-                files.append(f"[FILE] {item}")
-    return {"base_dir": BASE_DIR, "items": files}
+    items = []
+    for entry in sorted(os.listdir(BASE_DIR)):
+        full = os.path.join(BASE_DIR, entry)
+        if os.path.isdir(full):
+            items.append(f"[DIR]  {entry}/")
+        else:
+            size = os.path.getsize(full)
+            items.append(f"[FILE] {entry} ({size} bytes)")
+    return {"base_dir": BASE_DIR, "items": items}
 
 
 @app.get("/")
@@ -40,8 +41,7 @@ async def read_index():
             content={
                 "error": "index.html not found",
                 "expected": INDEX_PATH,
-                "base_dir": BASE_DIR,
-                "items_in_base": os.listdir(BASE_DIR) if os.path.exists(BASE_DIR) else [],
+                "items_in_base": os.listdir(BASE_DIR),
             }
         )
     return FileResponse(INDEX_PATH)
