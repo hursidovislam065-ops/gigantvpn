@@ -340,24 +340,3 @@ async def admin_grant(request: Request):
     finally:
         db.close()
 
-
-
-@app.get("/api/add-plan-7days")
-async def add_plan_7days():
-    try:
-        db = SessionLocal()
-        try:
-            existing = db.query(Plan).filter(Plan.id == "7days").first()
-            if existing:
-                existing.name = "7 дней"
-                existing.duration_days = 7
-                existing.price = 79
-            else:
-                db.add(Plan(id="7days", name="7 дней", duration_days=7, price=79))
-            db.commit()
-            plans = db.query(Plan).order_by(Plan.duration_days).all()
-            return {"ok": True, "plans": [{"id": p.id, "name": p.name, "duration_days": p.duration_days, "price": p.price} for p in plans]}
-        finally:
-            db.close()
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
