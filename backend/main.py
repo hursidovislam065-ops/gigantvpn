@@ -22,6 +22,7 @@ CORS_ORIGINS = os.getenv("CORS_ORIGINS", "").split(",") if os.getenv("CORS_ORIGI
     "https://gigantvpn2-ilbyqrzhl-hursidovislam065-ops-projects.vercel.app",
     "https://gigant-vpn.surge.sh",
     "https://gigant-vpn-app.netlify.app",
+    "https://hursidovislam065-ops.github.io",
 ]
 
 app.add_middleware(
