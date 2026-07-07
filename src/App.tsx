@@ -12,7 +12,7 @@ import { Devices } from './pages/Devices';
 import { Documents } from './pages/Documents';
 import { VpnSetup } from './pages/VpnSetup';
 import { PaymentHistory } from './pages/PaymentHistory';
-import { waitForTelegramUser, getTelegramUser, initTelegramWebApp } from './auth/telegram';
+import { waitForTelegramUser, getTelegramUser, initTelegramWebApp, loadTelegramSDK } from './auth/telegram';
 import { getUser, registerUser } from './api/client';
 import type { PageId, User } from './types';
 
@@ -53,9 +53,15 @@ export function App() {
 
   const refreshUserData = useCallback(async () => {
     setLoadError(null);
+
+    // Load Telegram SDK first
+    await loadTelegramSDK();
     initTelegramWebApp();
 
-    const telegramId = await waitForTelegramUser(3000);
+    // Give SDK a moment to initialize
+    await new Promise(r => setTimeout(r, 500));
+
+    const telegramId = await waitForTelegramUser(8000);
     const tgUser = getTelegramUser();
 
     if (!telegramId) {

@@ -100,8 +100,29 @@ export function initTelegramWebApp() {
   }
 }
 
-// Wait for Telegram WebApp to initialize user data (up to 3 seconds)
-export function waitForTelegramUser(timeoutMs = 3000): Promise<number | null> {
+// Dynamically load Telegram WebApp SDK
+export function loadTelegramSDK(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (window.Telegram?.WebApp) {
+      resolve(true);
+      return;
+    }
+    const existing = document.querySelector('script[src="https://telegram.org/js/telegram-web-app.js"]');
+    if (existing) {
+      existing.addEventListener('load', () => resolve(!!window.Telegram?.WebApp));
+      existing.addEventListener('error', () => resolve(false));
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://telegram.org/js/telegram-web-app.js';
+    script.onload = () => resolve(!!window.Telegram?.WebApp);
+    script.onerror = () => resolve(false);
+    document.head.appendChild(script);
+  });
+}
+
+// Wait for Telegram WebApp to initialize user data (up to 8 seconds)
+export function waitForTelegramUser(timeoutMs = 8000): Promise<number | null> {
   return new Promise((resolve) => {
     // Immediately check
     const direct = getEffectiveTelegramId();
@@ -118,6 +139,6 @@ export function waitForTelegramUser(timeoutMs = 3000): Promise<number | null> {
         clearInterval(interval);
         resolve(id);
       }
-    }, 100);
+    }, 200);
   });
 }
