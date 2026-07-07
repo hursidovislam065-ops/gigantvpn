@@ -7,6 +7,7 @@ const pkg = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf-8')
 
 export default defineConfig({
   plugins: [react()],
+  base: '/gigantvpn/',
   define: {
     APP_VERSION: JSON.stringify(pkg.version),
   },
