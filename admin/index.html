@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GigantVPN Admin — Поддержка</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+
+        .login-screen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .login-box {
+            background: rgba(20, 20, 35, 0.9);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px;
+            padding: 40px 32px;
+            width: 100%;
+            max-width: 360px;
+            text-align: center;
+        }
+
+        .login-box h1 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .login-box p {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 24px;
+        }
+
+        .login-box input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.04);
+            color: white;
+            font-size: 15px;
+            outline: none;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .login-box input:focus {
+            border-color: rgba(0,212,255,0.3);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: none;
+            background: linear-gradient(135deg, #00D4FF, #0080FF);
+            color: #000;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn:hover { opacity: 0.9; }
+        .btn:disabled { opacity: 0.4; cursor: default; }
+
+        .admin-panel {
+            display: none;
+            height: 100vh;
+        }
+
+        .header {
+            padding: 16px 20px;
+            background: rgba(15,15,25,0.95);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header h1 { font-size: 18px; font-weight: 700; }
+
+        .header .logout {
+            background: none;
+            border: none;
+            color: #666;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .layout {
+            display: flex;
+            height: calc(100vh - 57px);
+        }
+
+        .ticket-list {
+            width: 320px;
+            border-right: 1px solid rgba(255,255,255,0.06);
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .ticket-item {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .ticket-item:hover { background: rgba(255,255,255,0.03); }
+        .ticket-item.active { background: rgba(0,212,255,0.08); border-left: 3px solid #00D4FF; }
+
+        .ticket-item .subject {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .ticket-item .meta {
+            font-size: 12px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-open { background: #00D4FF; }
+        .status-in_progress { background: #FFD700; }
+        .status-closed { background: #666; }
+
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .chat-header {
+            padding: 12px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            background: rgba(15,15,25,0.5);
+        }
+
+        .chat-header .ticket-subject { font-size: 15px; font-weight: 600; }
+        .chat-header .ticket-meta { font-size: 12px; color: #666; margin-top: 2px; }
+
+        .chat-header .actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .chat-header .actions button {
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: none;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-reply {
+            background: linear-gradient(135deg, #00D4FF, #0080FF);
+            color: #000;
+        }
+
+        .btn-close {
+            background: rgba(255,107,107,0.15);
+            color: #ff6b6b;
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .msg {
+            max-width: 70%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+
+        .msg-user {
+            align-self: flex-start;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .msg-admin {
+            align-self: flex-end;
+            background: linear-gradient(135deg, rgba(0,212,255,0.15), rgba(0,128,255,0.1));
+            border: 1px solid rgba(0,212,255,0.2);
+        }
+
+        .msg .time {
+            font-size: 11px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .msg-user .sender {
+            font-size: 11px;
+            color: #00D4FF;
+            margin-bottom: 4px;
+        }
+
+        .input-area {
+            padding: 12px 20px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            gap: 8px;
+            background: rgba(15,15,25,0.95);
+        }
+
+        .input-area input {
+            flex: 1;
+            padding: 12px 16px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.04);
+            color: white;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .input-area input:focus {
+            border-color: rgba(0,212,255,0.3);
+        }
+
+        .input-area button {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            border: none;
+            background: linear-gradient(135deg, #00D4FF, #0080FF);
+            color: #000;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .empty-state {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .error { color: #ff6b6b; font-size: 13px; margin-top: 8px; }
+
+        @media (max-width: 768px) {
+            .ticket-list { width: 100%; }
+            .chat-area { display: none; }
+            .chat-area.show { display: flex; position: fixed; inset: 0; z-index: 10; background: #0a0a0f; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div class="login-screen" id="loginScreen">
+        <div class="login-box">
+            <h1>GigantVPN Admin</h1>
+            <p>Введите ваш Telegram ID для входа</p>
+            <input type="text" id="adminIdInput" placeholder="Telegram ID" inputmode="numeric">
+            <div class="error" id="loginError"></div>
+            <button class="btn" id="loginBtn" onclick="login()">Войти</button>
+        </div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div class="admin-panel" id="adminPanel">
+        <div class="header">
+            <h1>GigantVPN — Поддержка</h1>
+            <button class="logout" onclick="logout()">Выйти</button>
+        </div>
+        <div class="layout">
+            <div class="ticket-list" id="ticketList"></div>
+            <div class="chat-area" id="chatArea">
+                <div class="empty-state" id="emptyState">Выберите обращение</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ADMIN_TELEGRAM_ID = 8954318576;
+        const SUPABASE_URL = 'https://ijgzostzqpowlyllssjb.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable__360GidmIYq8uYh6tfhjPw_POKDNDxf';
+
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let currentAdminId = null;
+        let currentTicket = null;
+
+        // Auto-login if saved
+        const savedId = localStorage.getItem('admin_telegram_id');
+        if (savedId) {
+            document.getElementById('adminIdInput').value = savedId;
+        }
+
+        function login() {
+            const input = document.getElementById('adminIdInput').value.trim();
+            const id = parseInt(input);
+
+            if (!id) {
+                document.getElementById('loginError').textContent = 'Введите ID';
+                return;
+            }
+
+            if (id !== ADMIN_TELEGRAM_ID) {
+                document.getElementById('loginError').textContent = 'Неверный ID';
+                return;
+            }
+
+            currentAdminId = id;
+            localStorage.setItem('admin_telegram_id', id);
+
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('adminPanel').style.display = 'block';
+
+            loadTickets();
+            subscribeToMessages();
+        }
+
+        function logout() {
+            localStorage.removeItem('admin_telegram_id');
+            currentAdminId = null;
+            currentTicket = null;
+            document.getElementById('loginScreen').style.display = 'flex';
+            document.getElementById('adminPanel').style.display = 'none';
+        }
+
+        async function loadTickets() {
+            const { data, error } = await supabase
+                .from('support_tickets')
+                .select('*')
+                .order('updated_at', { ascending: false });
+
+            if (error) {
+                console.error('Load tickets error:', error);
+                return;
+            }
+
+            renderTickets(data || []);
+        }
+
+        function renderTickets(tickets) {
+            const list = document.getElementById('ticketList');
+            list.innerHTML = tickets.map(t => {
+                const statusClass = 'status-' + t.status;
+                const statusText = { open: 'Открыто', in_progress: 'В работе', closed: 'Закрыто' }[t.status] || t.status;
+                const date = new Date(t.updated_at).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+                return `
+                    <div class="ticket-item ${currentTicket?.id === t.id ? 'active' : ''}"
+                         onclick="selectTicket(${t.id})">
+                        <div class="subject">${escapeHtml(t.subject)}</div>
+                        <div class="meta">
+                            <span class="status-dot ${statusClass}"></span>
+                            <span>${statusText}</span>
+                            <span>·</span>
+                            <span>${date}</span>
+                        </div>
+                        <div class="meta" style="margin-top:2px">
+                            <span>User #${t.user_id}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function selectTicket(ticketId) {
+            const { data: ticket } = await supabase
+                .from('support_tickets')
+                .select('*')
+                .eq('id', ticketId)
+                .single();
+
+            if (!ticket) return;
+
+            currentTicket = ticket;
+
+            // Re-render list to highlight active
+            const { data: tickets } = await supabase
+                .from('support_tickets')
+                .select('*')
+                .order('updated_at', { ascending: false });
+            renderTickets(tickets || []);
+
+            // Load messages
+            const { data: messages } = await supabase
+                .from('support_messages')
+                .select('*')
+                .eq('ticket_id', ticketId)
+                .order('created_at', { ascending: true });
+
+            // Mark as read
+            await supabase
+                .from('support_messages')
+                .update({ is_read: true })
+                .eq('ticket_id', ticketId)
+                .eq('sender', 'admin')
+                .eq('is_read', false);
+
+            renderChat(ticket, messages || []);
+        }
+
+        function renderChat(ticket, messages) {
+            const area = document.getElementById('chatArea');
+            document.getElementById('emptyState')?.remove();
+
+            const statusText = { open: 'Открыто', in_progress: 'В работе', closed: 'Закрыто' }[ticket.status];
+            const isClosed = ticket.status === 'closed';
+
+            area.innerHTML = `
+                <div class="chat-header">
+                    <div class="ticket-subject">${escapeHtml(ticket.subject)}</div>
+                    <div class="ticket-meta">User #${ticket.user_id} · ${statusText}</div>
+                    ${!isClosed ? `
+                    <div class="actions">
+                        <button class="btn-close" onclick="closeTicket(${ticket.id})">Закрыть обращение</button>
+                    </div>
+                    ` : ''}
+                </div>
+                <div class="messages" id="messagesContainer">
+                    ${messages.map(m => {
+                        const time = new Date(m.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                        const cls = m.sender === 'admin' ? 'msg-admin' : 'msg-user';
+                        return `
+                            <div class="msg ${cls}">
+                                ${m.sender === 'user' ? '<div class="sender">Пользователь</div>' : ''}
+                                <div>${escapeHtml(m.message)}</div>
+                                <div class="time">${time}</div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+                ${!isClosed ? `
+                <div class="input-area">
+                    <input type="text" id="msgInput" placeholder="Ваш ответ..."
+                           onkeydown="if(event.key==='Enter')sendReply()">
+                    <button onclick="sendReply()">→</button>
+                </div>
+                ` : '<div style="padding:12px 20px;text-align:center;color:#666;font-size:13px;border-top:1px solid rgba(255,255,255,0.06)">Обращение закрыто</div>'}
+            `;
+
+            // Scroll to bottom
+            const container = document.getElementById('messagesContainer');
+            if (container) container.scrollTop = container.scrollHeight;
+        }
+
+        async function sendReply() {
+            const input = document.getElementById('msgInput');
+            const text = input.value.trim();
+            if (!text || !currentTicket) return;
+
+            input.value = '';
+
+            const { error } = await supabase.from('support_messages').insert({
+                ticket_id: currentTicket.id,
+                sender: 'admin',
+                message: text,
+                telegram_id: 0,
+            });
+
+            if (error) {
+                console.error('Send error:', error);
+                return;
+            }
+
+            // Update ticket status
+            await supabase
+                .from('support_tickets')
+                .update({ status: 'in_progress' })
+                .eq('id', currentTicket.id);
+
+            // Reload messages
+            selectTicket(currentTicket.id);
+        }
+
+        async function closeTicket(ticketId) {
+            if (!confirm('Закрыть обращение?')) return;
+
+            await supabase
+                .from('support_tickets')
+                .update({ status: 'closed' })
+                .eq('id', ticketId);
+
+            if (currentTicket?.id === ticketId) {
+                currentTicket.status = 'closed';
+                selectTicket(ticketId);
+            }
+
+            loadTickets();
+        }
+
+        // Realtime subscription for new messages
+        function subscribeToMessages() {
+            supabase
+                .channel('support_messages')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_messages' }, payload => {
+                    const msg = payload.new;
+                    // Reload if viewing this ticket
+                    if (currentTicket?.id === msg.ticket_id) {
+                        selectTicket(msg.ticket_id);
+                    }
+                    // Reload ticket list
+                    loadTickets();
+                })
+                .subscribe();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
