@@ -177,7 +177,7 @@ export function App() {
       case 'referral':
         return <Referral onBack={back} telegramId={userData?.telegram_id} />;
       case 'support':
-        return <Support onBack={back} />;
+        return <Support onBack={back} userId={userData?.id || 0} />;
       case 'settings':
         return <Settings onBack={back} onNavigate={go} userData={userData} onRefresh={refreshUserData} />;
       case 'devices':

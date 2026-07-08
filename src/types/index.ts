@@ -50,4 +50,23 @@ export interface Toast {
   duration?: number;
 }
 
-export type PageId = 'home' | 'subscription' | 'referral' | 'support' | 'settings' | 'devices' | 'documents' | 'vpnsetup' | 'payment-history';
+export interface SupportTicket {
+  id: number;
+  user_id: number;
+  subject: string;
+  status: 'open' | 'in_progress' | 'closed';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SupportMessage {
+  id: number;
+  ticket_id: number;
+  sender: 'user' | 'admin';
+  message: string;
+  telegram_id?: number;
+  is_read: boolean;
+  created_at: string;
+}
+
+export type PageId = 'home' | 'subscription' | 'referral' | 'support' | 'settings' | 'devices' | 'documents' | 'vpnsetup' | 'payment-history' | 'chat';

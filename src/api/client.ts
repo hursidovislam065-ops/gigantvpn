@@ -1,4 +1,4 @@
-import type { User, Plan, Payment, ReferralStats, Device } from '../types';
+import type { User, Plan, Payment, ReferralStats, Device, SupportTicket, SupportMessage } from '../types';
 import { supabase } from './supabase';
 import { checkRateLimit, rateLimits } from '../utils/rateLimit';
 import { validateEmail, validateDeviceName, sanitizeInput, isValidPaymentUrl, isValidTelegramId } from '../utils/validation';
@@ -276,4 +276,112 @@ export async function toggleDevice(userId: number, deviceId: number): Promise<De
 
   if (error) throw new Error(error.message);
   return data;
+}
+
+// Support
+export async function getSupportTickets(userId: number): Promise<SupportTicket[]> {
+  const { data, error } = await supabase
+    .from('support_tickets')
+    .select('*')
+    .eq('user_id', userId)
+    .order('updated_at', { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+export async function createSupportTicket(userId: number, subject: string): Promise<SupportTicket> {
+  if (!checkRateLimit('supportTicket', { maxRequests: 5, windowMs: 60000 })) {
+    throw new Error('Слишком много обращений. Подождите');
+  }
+  const sanitized = sanitizeInput(subject);
+  if (!sanitized || sanitized.length < 3) throw new Error('Тема слишком короткая');
+
+  const { data, error } = await supabase
+    .from('support_tickets')
+    .insert({ user_id: userId, subject: sanitized })
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function getSupportMessages(ticketId: number): Promise<SupportMessage[]> {
+  const { data, error } = await supabase
+    .from('support_messages')
+    .select('*')
+    .eq('ticket_id', ticketId)
+    .order('created_at', { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+export async function sendSupportMessage(
+  ticketId: number,
+  message: string,
+  telegramId: number,
+  sender: 'user' | 'admin' = 'user'
+): Promise<SupportMessage> {
+  if (!checkRateLimit('supportMessage', { maxRequests: 20, windowMs: 60000 })) {
+    throw new Error('Слишком много сообщений. Подождите');
+  }
+  const sanitized = sanitizeInput(message);
+  if (!sanitized || sanitized.length < 1) throw new Error('Сообщение не может быть пустым');
+
+  const { data, error } = await supabase
+    .from('support_messages')
+    .insert({
+      ticket_id: ticketId,
+      message: sanitized,
+      telegram_id: telegramId,
+      sender,
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function closeSupportTicket(ticketId: number): Promise<void> {
+  const { error } = await supabase
+    .from('support_tickets')
+    .update({ status: 'closed' })
+    .eq('id', ticketId);
+
+  if (error) throw new Error(error.message);
+}
+
+export async function getUnreadMessageCount(userId: number): Promise<number> {
+  // Get user's ticket IDs first
+  const { data: tickets } = await supabase
+    .from('support_tickets')
+    .select('id')
+    .eq('user_id', userId);
+
+  if (!tickets || tickets.length === 0) return 0;
+
+  const ticketIds = tickets.map(t => t.id);
+
+  const { count, error } = await supabase
+    .from('support_messages')
+    .select('*', { count: 'exact', head: true })
+    .eq('sender', 'admin')
+    .eq('is_read', false)
+    .in('ticket_id', ticketIds);
+
+  if (error) return 0;
+  return count || 0;
+}
+
+export async function markMessagesRead(ticketId: number): Promise<void> {
+  const { error } = await supabase
+    .from('support_messages')
+    .update({ is_read: true })
+    .eq('ticket_id', ticketId)
+    .eq('sender', 'admin');
+
+  if (error) throw new Error(error.message);
 }
