@@ -1,8 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { SettingsProvider } from './contexts/SettingsContext';
 import { BottomNav } from './components/BottomNav';
 import { ToastContainer } from './components/Toast';
 import { OfflineBanner } from './components/OfflineBanner';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { SplashScreen } from './components/SplashScreen';
+import { Onboarding } from './components/Onboarding';
+import { detectBot, isSpamming } from './utils/antiBot';
 import { Home } from './pages/Home';
 import { Subscription } from './pages/Subscription';
 import { Referral } from './pages/Referral';
@@ -26,6 +30,9 @@ export function App() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadingPhase, setLoadingPhase] = useState<'init' | 'waking'>('init');
+  const [showSplash, setShowSplash] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('onboarding_done'));
+  const [isBlocked, setIsBlocked] = useState(false);
   const currentPageRef = useRef<PageId>('home');
 
   const go = useCallback((p: PageId) => {
@@ -92,10 +99,53 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    // Anti-bot check
+    const botCheck = detectBot();
+    if (botCheck.isBot) {
+      console.warn('Bot detected:', botCheck.reasons);
+      setIsBlocked(true);
+      return;
+    }
+
     refreshUserData();
     const timer = setTimeout(() => setLoadingPhase('waking'), 4000);
     return () => clearTimeout(timer);
   }, [refreshUserData]);
+
+  const handleOnboardingComplete = () => {
+    localStorage.setItem('onboarding_done', 'true');
+    setShowOnboarding(false);
+  };
+
+  // Bot blocked screen
+  if (isBlocked) {
+    return (
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'center', minHeight: '100vh', padding: '20px',
+        background: '#050810',
+      }}>
+        <div style={{
+          width: '64px', height: '64px', borderRadius: '50%',
+          background: 'rgba(255, 107, 107, 0.15)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          marginBottom: '16px',
+        }}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+              stroke="#FF6B6B" strokeWidth="1.5" fill="rgba(255,107,107,0.1)" />
+            <path d="M12 8v4M12 16h.01" stroke="#FF6B6B" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </div>
+        <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px', color: '#FF6B6B' }}>
+          Доступ ограничен
+        </h2>
+        <p style={{ fontSize: '13px', opacity: 0.5, textAlign: 'center', maxWidth: '280px' }}>
+          Обнаружена подозрительная активность. Откройте приложение через Telegram.
+        </p>
+      </div>
+    );
+  }
 
   if (initialLoading) {
     return (
@@ -131,7 +181,7 @@ export function App() {
       case 'settings':
         return <Settings onBack={back} onNavigate={go} userData={userData} onRefresh={refreshUserData} />;
       case 'devices':
-        return <Devices onBack={back} userId={userData?.id || 0} onNavigate={go} />;
+        return <Devices onBack={back} userId={userData?.id || 0} userData={userData} onNavigate={go} onRefresh={refreshUserData} />;
       case 'documents':
         return <Documents onBack={back} />;
       case 'vpnsetup':
@@ -144,8 +194,11 @@ export function App() {
   };
 
   return (
-    <ErrorBoundary>
-      <div style={{ background: 'var(--bg-primary)', minHeight: '100vh' }}>
+    <SettingsProvider>
+      <ErrorBoundary>
+        {showSplash && <SplashScreen onReady={() => setShowSplash(false)} />}
+        {showOnboarding && <Onboarding onComplete={handleOnboardingComplete} />}
+        <div style={{ background: 'var(--bg-primary)', minHeight: '100vh' }}>
         <div className="animated-bg" />
 
         <div className="particles">
@@ -164,13 +217,14 @@ export function App() {
 
         <OfflineBanner />
 
-        <main>
+        <main style={{ animation: 'fadeIn 0.3s ease' }}>
           {renderPage()}
         </main>
 
         <BottomNav current={page} onChange={go} />
         <ToastContainer />
       </div>
-    </ErrorBoundary>
+      </ErrorBoundary>
+    </SettingsProvider>
   );
 }

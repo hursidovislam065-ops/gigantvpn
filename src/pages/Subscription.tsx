@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '../hooks/useToast';
 import { getPlans, createPayment, confirmPayment } from '../api/client';
+import { hapticFeedback } from '../utils/haptic';
 import type { Plan } from '../types';
 
 interface SubscriptionProps {
@@ -10,11 +11,11 @@ interface SubscriptionProps {
 }
 
 const fallbackPlans: Plan[] = [
-  { id: 1, name: '7 дней', price: 79, days: 7, per_day: '11.3' },
-  { id: 2, name: '1 месяц', price: 199, days: 30, per_day: '6.6' },
-  { id: 3, name: '3 месяца', price: 539, days: 90, badge: '−10%', per_day: '6.0' },
-  { id: 4, name: '6 месяцев', price: 999, days: 180, badge: '−16%', per_day: '5.6' },
-  { id: 5, name: '12 месяцев', price: 1799, days: 365, badge: '−25%', per_day: '4.9' },
+  { id: '7days', name: '7 дней', price: 79, duration_days: 7 },
+  { id: '1month', name: '1 месяц', price: 199, duration_days: 30 },
+  { id: '3month', name: '3 месяца', price: 499, duration_days: 90 },
+  { id: '6month', name: '6 месяцев', price: 899, duration_days: 180 },
+  { id: '12month', name: '12 месяцев', price: 1599, duration_days: 365 },
 ];
 
 const ALLOWED_PAYMENT_DOMAINS = ['yookassa.ru', 'stripe.com', 'example.com'];
@@ -52,16 +53,18 @@ export function Subscription({ onBack, userId, onPaymentSuccess }: SubscriptionP
   const totalPrice = useMemo(() => {
     if (!selectedPlan) return 0;
     const extraDevices = Math.max(0, devices - 3);
-    const extraTotal = extraDevices * 50 * (selectedPlan.days / 30);
+    const extraTotal = extraDevices * 50 * (selectedPlan.duration_days / 30);
     return selectedPlan.price + extraTotal;
   }, [selectedPlan, devices]);
 
   const handlePayment = async () => {
     if (!selectedPlan || !userId) {
+      hapticFeedback('warning');
       addToast('error', 'Выберите тариф');
       return;
     }
 
+    hapticFeedback('medium');
     setIsProcessing(true);
     try {
       const payment = await createPayment({
@@ -81,13 +84,16 @@ export function Subscription({ onBack, userId, onPaymentSuccess }: SubscriptionP
 
       const result = await confirmPayment(payment.payment_id);
       if (result.success) {
+        hapticFeedback('success');
         addToast('success', 'Оплата прошла! Подписка активирована.');
         onPaymentSuccess();
         onBack();
       } else {
+        hapticFeedback('error');
         addToast('error', 'Ошибка подтверждения платежа');
       }
     } catch (err) {
+      hapticFeedback('error');
       addToast('error', err instanceof Error ? err.message : 'Ошибка оплаты');
     } finally {
       setIsProcessing(false);
@@ -139,7 +145,7 @@ export function Subscription({ onBack, userId, onPaymentSuccess }: SubscriptionP
             return (
               <button
                 key={plan.id}
-                onClick={() => setSelectedPlan(plan)}
+                onClick={() => { hapticFeedback('light'); setSelectedPlan(plan); }}
                 className={isSelected ? 'glass-pro' : 'glass'}
                 style={{
                   padding: '14px 8px',
@@ -148,6 +154,7 @@ export function Subscription({ onBack, userId, onPaymentSuccess }: SubscriptionP
                   color: 'white',
                   position: 'relative',
                   transition: 'all 0.3s',
+                  transform: isSelected ? 'scale(1.02)' : 'scale(1)',
                 }}
               >
                 {isSelected && (
@@ -159,21 +166,12 @@ export function Subscription({ onBack, userId, onPaymentSuccess }: SubscriptionP
                     fontSize: '8px', color: 'black', fontWeight: 700,
                   }}>✓</div>
                 )}
-                {plan.badge && (
-                  <div style={{
-                    position: 'absolute', top: '4px', right: isSelected ? '22px' : '4px',
-                    background: 'rgba(0,230,118,0.15)',
-                    border: '1px solid rgba(0,230,118,0.3)',
-                    color: '#00E676', fontSize: '8px', fontWeight: 700,
-                    padding: '2px 6px', borderRadius: '4px',
-                  }}>{plan.badge}</div>
-                )}
                 <p style={{ fontSize: '11px', fontWeight: 600, margin: '0 0 4px' }}>{plan.name}</p>
                 <p style={{
                   fontSize: '18px', fontWeight: 800, margin: 0,
                   color: isSelected ? '#00D4FF' : 'white',
                 }}>{plan.price} ₽</p>
-                <p style={{ fontSize: '9px', opacity: 0.4, margin: '4px 0 0' }}>{plan.per_day} ₽/день</p>
+                <p style={{ fontSize: '9px', opacity: 0.4, margin: '4px 0 0' }}>{(plan.price / plan.duration_days).toFixed(1)} ₽/день</p>
               </button>
             );
           })}

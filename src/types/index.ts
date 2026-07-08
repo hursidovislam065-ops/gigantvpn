@@ -4,23 +4,19 @@ export interface User {
   username: string;
   first_name: string;
   email?: string;
-  balance: number;
   subscription_until?: string;
-  devices_count: number;
-  network: string;
-  is_trial: boolean;
-  trial_ends_at?: string;
   auto_renew: boolean;
+  referral_code?: string;
+  device_limit: number;
   created_at: string;
 }
 
 export interface Plan {
-  id: number;
+  id: string;
   name: string;
   price: number;
-  days: number;
-  badge?: string;
-  per_day: string;
+  duration_days: number;
+  price_stars?: number;
 }
 
 export interface Payment {
@@ -37,7 +33,6 @@ export interface ReferralStats {
   active_referrals: number;
   total_earned: number;
   referral_link: string;
-  referral_code: string;
 }
 
 export interface Device {

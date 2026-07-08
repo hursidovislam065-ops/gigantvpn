@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '../hooks/useToast';
 import { linkEmail, unlinkEmail, toggleAutoRenew } from '../api/client';
+import { hapticFeedback } from '../utils/haptic';
+import { useSettings } from '../contexts/SettingsContext';
 import type { PageId, User } from '../types';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -14,10 +16,11 @@ interface SettingsProps {
 }
 
 export function Settings({ onBack, onNavigate, userData, onRefresh }: SettingsProps) {
+  const { theme, fontSize, language, setTheme, setFontSize, setLanguage } = useSettings();
   const [emailValue, setEmailValue] = useState(userData?.email || '');
   const [emailLinked, setEmailLinked] = useState(!!userData?.email);
   const [showEmailInput, setShowEmailInput] = useState(false);
-  const [notifications, setNotifications] = useState(true);
+  const [notifications, setNotifications] = useState(() => localStorage.getItem('notifications') !== 'false');
   const [autoRenew, setAutoRenew] = useState(userData?.auto_renew || false);
   const [loading, setLoading] = useState(false);
   const { addToast } = useToast();
@@ -25,6 +28,7 @@ export function Settings({ onBack, onNavigate, userData, onRefresh }: SettingsPr
   const isSubscribed = userData?.subscription_until && new Date(userData.subscription_until) > new Date();
 
   const handleLink = async () => {
+    hapticFeedback('medium');
     if (!emailValue || !EMAIL_REGEX.test(emailValue) || emailValue.length > EMAIL_MAX_LENGTH) {
       addToast('error', 'Введите корректный email');
       return;
@@ -65,13 +69,32 @@ export function Settings({ onBack, onNavigate, userData, onRefresh }: SettingsPr
     try {
       await toggleAutoRenew(userData.telegram_id, !autoRenew);
       setAutoRenew(!autoRenew);
+      hapticFeedback('success');
       addToast('success', autoRenew ? 'Автопродление отключено' : 'Автопродление включено');
       onRefresh();
     } catch {
+      hapticFeedback('error');
       addToast('error', 'Ошибка');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleThemeClick = (t: 'dark' | 'light') => {
+    hapticFeedback('light');
+    setTheme(t);
+    addToast('info', t === 'dark' ? 'Тёмная тема' : 'Светлая тема');
+  };
+
+  const handleLanguageClick = (l: 'ru' | 'en') => {
+    hapticFeedback('light');
+    setLanguage(l);
+    addToast('info', l === 'ru' ? 'Русский язык' : 'English');
+  };
+
+  const handleFontSizeClick = (s: 'small' | 'medium' | 'large') => {
+    hapticFeedback('light');
+    setFontSize(s);
   };
 
   return (
@@ -108,7 +131,7 @@ export function Settings({ onBack, onNavigate, userData, onRefresh }: SettingsPr
         {/* Auto-renew */}
         <div className="glass anim-up" style={{ padding: '14px 20px', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(0, 212, 255, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🔄</span>
+            <span style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(0, 212, 255, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'iconSpin 8s linear infinite' }}>🔄</span>
             <div>
               <span style={{ fontSize: '14px' }}>Автопродление</span>
               <p style={{ fontSize: '11px', opacity: 0.4, margin: '2px 0 0' }}>Продлевать подписку автоматически</p>
@@ -126,7 +149,7 @@ export function Settings({ onBack, onNavigate, userData, onRefresh }: SettingsPr
 
           <div className="nav-item-row" style={{ justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(0, 212, 255, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🔔</span>
+              <span style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(0, 212, 255, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'iconBounce 2s ease-in-out infinite' }}>🔔</span>
               <span style={{ fontSize: '14px' }}>Уведомления</span>
             </div>
             <label className="toggle-switch">
@@ -136,13 +159,13 @@ export function Settings({ onBack, onNavigate, userData, onRefresh }: SettingsPr
           </div>
 
           <button onClick={() => onNavigate('devices')} className="nav-item-row">
-            <span style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(0, 212, 255, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>💻</span>
+            <span style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(0, 212, 255, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'iconFloat 3s ease-in-out infinite' }}>💻</span>
             <span style={{ flex: 1, fontSize: '14px' }}>Устройства</span>
             <span className="text-gray">→</span>
           </button>
 
           <button onClick={() => onNavigate('payment-history')} className="nav-item-row">
-            <span style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(0, 212, 255, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>💳</span>
+            <span style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(0, 212, 255, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'iconFloat 3s ease-in-out infinite 0.5s' }}>💳</span>
             <span style={{ flex: 1, fontSize: '14px' }}>История платежей</span>
             <span className="text-gray">→</span>
           </button>
@@ -159,7 +182,7 @@ export function Settings({ onBack, onNavigate, userData, onRefresh }: SettingsPr
               background: emailLinked ? 'rgba(0, 230, 118, 0.05)' : 'rgba(255,255,255,0.02)',
               border: emailLinked ? '1px solid rgba(0, 230, 118, 0.2)' : '1px solid rgba(255,255,255,0.04)',
             }}>
-              <span style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(0, 212, 255, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>📧</span>
+              <span style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(0, 212, 255, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'iconFloat 3s ease-in-out infinite' }}>📧</span>
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: '14px', margin: 0 }}>Email</p>
                 <p style={{ fontSize: '12px', opacity: 0.4, margin: 0 }}>
@@ -230,6 +253,7 @@ export function Settings({ onBack, onNavigate, userData, onRefresh }: SettingsPr
               background: 'linear-gradient(135deg, #00D4FF, #0080FF)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '14px', color: 'black',
+              animation: 'pulseGlow 2s ease-in-out infinite',
             }}>✈</span>
             <div style={{ flex: 1 }}>
               <p style={{ fontSize: '14px', margin: 0 }}>Telegram</p>
@@ -241,7 +265,77 @@ export function Settings({ onBack, onNavigate, userData, onRefresh }: SettingsPr
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '11px', color: 'black', fontWeight: 700,
               boxShadow: '0 0 15px rgba(0, 212, 255, 0.5)',
+              animation: 'iconPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
             }}>✓</span>
+          </div>
+        </div>
+
+        {/* Appearance */}
+        <div className="glass anim-up" style={{ padding: '12px 0', marginBottom: '12px' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 700, margin: '0 20px 12px' }}>Внешний вид</h3>
+
+          {/* Theme */}
+          <div style={{ padding: '0 16px', marginBottom: '8px' }}>
+            <p style={{ fontSize: '12px', opacity: 0.5, margin: '0 0 8px' }}>Тема</p>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {(['dark', 'light'] as const).map(t => (
+                <button
+                  key={t}
+                  onClick={() => handleThemeClick(t)}
+                  style={{
+                    flex: 1, padding: '10px', borderRadius: '12px',
+                    background: theme === t ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.04)',
+                    border: theme === t ? '1px solid rgba(0,212,255,0.3)' : '1px solid rgba(255,255,255,0.06)',
+                    color: theme === t ? '#00D4FF' : '#6E7A8A',
+                    fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                    transition: 'all 0.3s',
+                  }}
+                >{t === 'dark' ? '🌙 Тёмная' : '☀️ Светлая'}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Language */}
+          <div style={{ padding: '0 16px', marginBottom: '8px' }}>
+            <p style={{ fontSize: '12px', opacity: 0.5, margin: '0 0 8px' }}>Язык</p>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {(['ru', 'en'] as const).map(l => (
+                <button
+                  key={l}
+                  onClick={() => handleLanguageClick(l)}
+                  style={{
+                    flex: 1, padding: '10px', borderRadius: '12px',
+                    background: language === l ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.04)',
+                    border: language === l ? '1px solid rgba(0,212,255,0.3)' : '1px solid rgba(255,255,255,0.06)',
+                    color: language === l ? '#00D4FF' : '#6E7A8A',
+                    fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                    transition: 'all 0.3s',
+                  }}
+                >{l === 'ru' ? '🇷🇺 Русский' : '🇬🇧 English'}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Font Size */}
+          <div style={{ padding: '0 16px' }}>
+            <p style={{ fontSize: '12px', opacity: 0.5, margin: '0 0 8px' }}>Размер шрифта</p>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {(['small', 'medium', 'large'] as const).map(s => (
+                <button
+                  key={s}
+                  onClick={() => handleFontSizeClick(s)}
+                  style={{
+                    flex: 1, padding: '10px', borderRadius: '12px',
+                    background: fontSize === s ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.04)',
+                    border: fontSize === s ? '1px solid rgba(0,212,255,0.3)' : '1px solid rgba(255,255,255,0.06)',
+                    color: fontSize === s ? '#00D4FF' : '#6E7A8A',
+                    fontSize: s === 'small' ? '11px' : s === 'large' ? '16px' : '13px',
+                    fontWeight: 600, cursor: 'pointer',
+                    transition: 'all 0.3s',
+                  }}
+                >{s === 'small' ? 'Мелкий' : s === 'large' ? 'Крупный' : 'Стандарт'}</button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -281,8 +375,9 @@ export function Settings({ onBack, onNavigate, userData, onRefresh }: SettingsPr
           </button>
         </div>
 
-        <div style={{ textAlign: 'center', padding: '8px 0' }}>
-          <p style={{ fontSize: '11px', opacity: 0.2 }}>GigantVPN v{APP_VERSION}</p>
+        <div style={{ textAlign: 'center', padding: '12px 0' }}>
+          <p style={{ fontSize: '11px', opacity: 0.3, margin: '0 0 4px' }}>GigantVPN v{APP_VERSION || '2.2.0'}</p>
+          <p style={{ fontSize: '10px', opacity: 0.2, margin: 0 }}>Сделано с ❤️ для безопасности</p>
         </div>
       </div>
     </div>

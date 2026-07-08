@@ -1,4 +1,5 @@
 import { HomeSkeleton } from '../components/Skeleton';
+import { hapticFeedback } from '../utils/haptic';
 import type { PageId, User } from '../types';
 
 interface HomeProps {
@@ -20,7 +21,7 @@ export function Home({ onNavigate, userData, onRefresh, loadError }: HomeProps) 
             <p style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px' }}>Ошибка загрузки</p>
             <p style={{ fontSize: '13px', opacity: 0.6, marginBottom: '20px', lineHeight: 1.5 }}>{loadError}</p>
             <button
-              onClick={onRefresh}
+              onClick={() => { hapticFeedback('medium'); onRefresh(); }}
               className="btn-primary"
               style={{ width: 'auto', padding: '14px 32px' }}
             >
@@ -32,10 +33,8 @@ export function Home({ onNavigate, userData, onRefresh, loadError }: HomeProps) 
     );
   }
 
-  const balance = userData!.balance || 0;
   const subscriptionUntil = userData!.subscription_until;
   const isSubscribed = subscriptionUntil && new Date(subscriptionUntil) > new Date();
-  const isTrial = userData!.is_trial && userData!.trial_ends_at && new Date(userData!.trial_ends_at) > new Date();
 
   return (
     <div style={{ padding: '20px 16px 100px', minHeight: '100vh' }}>
@@ -51,7 +50,7 @@ export function Home({ onNavigate, userData, onRefresh, loadError }: HomeProps) 
             fontSize: '36px', fontWeight: 'bold', color: 'black',
             boxShadow: '0 0 40px rgba(0, 212, 255, 0.5), 0 8px 20px rgba(0, 212, 255, 0.3)',
           }}>G</div>
-          <h1 className="anim-up" style={{ fontSize: '24px', fontWeight: 800, margin: '0 0 4px', letterSpacing: '-0.5px', animationDelay: '0.1s' }}>
+          <h1 className="gradient-text anim-up" style={{ fontSize: '24px', fontWeight: 800, margin: '0 0 4px', letterSpacing: '-0.5px', animationDelay: '0.1s' }}>
             GigantVPN
           </h1>
           <p className="text-gray anim-up" style={{ fontSize: '12px', margin: 0, animationDelay: '0.15s' }}>
@@ -59,85 +58,64 @@ export function Home({ onNavigate, userData, onRefresh, loadError }: HomeProps) 
           </p>
         </div>
 
-        {/* Trial Banner */}
-        {isTrial && (
-          <div className="anim-up" style={{
-            padding: '14px 16px',
-            marginBottom: '12px',
-            borderRadius: '16px',
-            background: 'linear-gradient(135deg, rgba(255, 217, 61, 0.1), rgba(255, 165, 0, 0.05))',
-            border: '1px solid rgba(255, 217, 61, 0.25)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
+        {/* Subscription Status */}
+        <div className="glass anim-up stagger-2" style={{ padding: '16px 20px', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+          <div style={{
+            width: '32px', height: '32px', borderRadius: '10px',
+            background: isSubscribed ? 'rgba(0,230,118,0.15)' : 'rgba(255,107,107,0.15)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '14px',
+            animation: isSubscribed ? 'iconPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'iconShake 0.5s ease',
           }}>
-            <span style={{ fontSize: '20px' }}>🎁</span>
+            {isSubscribed ? '✅' : '⚠️'}
+          </div>
             <div>
-              <p style={{ fontSize: '13px', fontWeight: 600, color: '#FFD93D', margin: 0 }}>Пробный период активен</p>
-              <p style={{ fontSize: '11px', opacity: 0.6, margin: '2px 0 0' }}>
-                До {new Date(userData!.trial_ends_at!).toLocaleDateString('ru-RU')}
-              </p>
+              <div style={{ color: isSubscribed ? '#00E676' : '#FF6B6B', fontSize: '13px', fontWeight: 600 }}>
+                {isSubscribed ? 'Подписка активна' : 'Подписка не активна'}
+              </div>
+              {isSubscribed && (
+                <div style={{ fontSize: '11px', opacity: 0.5, marginTop: '2px' }}>
+                  До {new Date(subscriptionUntil!).toLocaleDateString('ru-RU')}
+                </div>
+              )}
             </div>
           </div>
-        )}
-
-        {/* Balance */}
-        <div className="glass anim-up" style={{ padding: '20px', marginBottom: '12px', textAlign: 'center', animationDelay: '0.2s' }}>
-          <p className="text-gray" style={{ fontSize: '11px', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '1.5px' }}>
-            Баланс
-          </p>
-          <p style={{
-            fontSize: '36px', fontWeight: 800, margin: 0,
-            background: 'linear-gradient(135deg, #fff, #8B95A7)',
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-          }}>
-            {balance}₽
-          </p>
-        </div>
-
-        {/* Subscription Status */}
-        <div className="glass anim-up" style={{ padding: '16px 20px', marginBottom: '16px', animationDelay: '0.25s' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-            <span style={{ fontSize: '16px' }}>{isSubscribed ? '✅' : '⚠️'}</span>
-            <span style={{ color: isSubscribed ? '#00E676' : '#FF6B6B', fontSize: '13px', fontWeight: 600 }}>
-              {isSubscribed ? `Подписка до ${new Date(subscriptionUntil!).toLocaleDateString('ru-RU')}` : 'Подписка не активна'}
-            </span>
-          </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <span className="tag">📱 {userData!.devices_count || 3} устройства</span>
-            <span className="tag">⚡ {userData!.network || 'LTE'}</span>
-            <span className="tag">∞ Безлимит</span>
-            {userData!.auto_renew && <span className="tag" style={{ color: '#00E676' }}>🔄 Автопродление</span>}
+            {userData!.auto_renew && (
+              <span className="tag" style={{ color: '#00E676', borderColor: 'rgba(0,230,118,0.2)' }}>
+                🔄 Автопродление
+              </span>
+            )}
           </div>
         </div>
 
         {/* CTA Buttons */}
         <button
-          onClick={() => onNavigate('subscription')}
-          className="btn-primary anim-up"
-          style={{ animationDelay: '0.3s' }}
+          onClick={() => { hapticFeedback('light'); onNavigate('subscription'); }}
+          className="btn-primary anim-up stagger-3"
         >
           <span className="shimmer"></span>
           💳 {isSubscribed ? 'Продлить подписку' : 'Оплатить подписку'}
         </button>
 
         <button
-          onClick={() => onNavigate('vpnsetup')}
-          className="btn-secondary anim-up"
-          style={{ marginTop: '10px', animationDelay: '0.35s' }}
+          onClick={() => { hapticFeedback('light'); onNavigate('vpnsetup'); }}
+          className="btn-secondary anim-up stagger-4"
+          style={{ marginTop: '10px' }}
         >
           📱 Настроить VPN
         </button>
 
         {/* Quick Actions */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '16px' }}>
-          <div onClick={() => onNavigate('referral')} className="icon-card anim-up" style={{ animationDelay: '0.4s' }}>
-            <div className="icon-wrap purple">👥</div>
+          <div onClick={() => { hapticFeedback('light'); onNavigate('referral'); }} className="icon-card anim-up stagger-4">
+            <div className="icon-wrap purple" style={{ animation: 'iconFloat 3s ease-in-out infinite' }}>👥</div>
             <div className="card-title">Пригласи друга</div>
             <div className="card-sub">Получи бонус</div>
           </div>
-          <div onClick={() => onNavigate('support')} className="icon-card anim-up" style={{ animationDelay: '0.45s' }}>
-            <div className="icon-wrap blue">🎧</div>
+          <div onClick={() => { hapticFeedback('light'); onNavigate('support'); }} className="icon-card anim-up stagger-5">
+            <div className="icon-wrap blue" style={{ animation: 'iconFloat 3s ease-in-out infinite 0.5s' }}>🎧</div>
             <div className="card-title">Поддержка</div>
             <div className="card-sub">Напишите нам</div>
           </div>
