@@ -8,8 +8,11 @@ import os
 import time
 import logging
 import requests
+from dotenv import load_dotenv
 from telegram import Update, Bot
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+
+load_dotenv()
 
 # Config
 SUPABASE_URL = os.getenv('SUPABASE_URL', 'https://ijgzostzqpowlyllssjb.supabase.co')
