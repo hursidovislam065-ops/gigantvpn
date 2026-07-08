@@ -71,14 +71,19 @@ router = Router()
 
 @router.message(CommandStart())
 async def cmd_start(message: Message):
-    await message.answer(
-        'GigantVPN Support Bot\n\n'
-        'Команды:\n'
-        '/list — открыть обращения\n'
-        '/reply <id> <текст> — ответить на обращение\n'
-        '/close <id> — закрыть обращение\n\n'
-        'Или просто напишите сообщение — оно будет отправлено как ответ на активное обращение.'
-    )
+    if message.chat.id == ADMIN_CHAT_ID:
+        await message.answer(
+            'GigantVPN Admin\n\n'
+            '/list — обращения\n'
+            '/reply <id> <текст> — ответить\n'
+            '/close <id> — закрыть'
+        )
+    else:
+        await message.answer(
+            '🎧 Поддержка GigantVPN\n\n'
+            'Чем можем помочь?\n'
+            'Напишите ваш вопрос, и мы ответим.'
+        )
 
 @router.message(Command('list'))
 async def cmd_list(message: Message):
@@ -166,32 +171,90 @@ async def cmd_close(message: Message):
         await message.answer(f'Ошибка: {e}')
 
 @router.message(F.text)
-async def handle_admin_message(message: Message):
-    if message.chat.id != ADMIN_CHAT_ID:
+async def handle_message(message: Message):
+    # Admin messages
+    if message.chat.id == ADMIN_CHAT_ID:
+        ticket_id = active_ticket_by_admin.get(message.chat.id)
+        if not ticket_id:
+            await message.answer('Нет активного обращения. /list')
+            return
+
+        try:
+            supabase_insert('support_messages', {
+                'ticket_id': ticket_id,
+                'sender': 'admin',
+                'message': message.text,
+                'telegram_id': 0,
+            })
+            supabase_update('support_tickets', {'status': 'in_progress'}, f'id=eq.{ticket_id}')
+
+            tickets = supabase_get('support_tickets', f'id=eq.{ticket_id}')
+            user = get_user_info(tickets[0]['user_id']) if tickets else {}
+            username = user.get('username', 'unknown')
+
+            await message.answer(f'Отправлено в #{ticket_id} (@{username})')
+        except Exception as e:
+            logger.error(f'Message error: {e}')
+            await message.answer(f'Ошибка: {e}')
         return
 
-    ticket_id = active_ticket_by_admin.get(message.chat.id)
-    if not ticket_id:
-        await message.answer('Нет активного обращения. Используйте /list и /reply <id>')
-        return
-
+    # User messages - create ticket and save message
     try:
-        supabase_insert('support_messages', {
-            'ticket_id': ticket_id,
-            'sender': 'admin',
-            'message': message.text,
-            'telegram_id': 0,
+        user = get_user_info(message.chat.id)
+        user_id = user.get('id', 0) if user else 0
+
+        if not user_id:
+            # Try to find by telegram_id
+            users = supabase_get('users', f'telegram_id=eq.{message.chat.id}&select=id')
+            user_id = users[0]['id'] if users else 0
+
+        if not user_id:
+            await message.answer('Пожалуйста, откройте приложение в Telegram для регистрации.')
+            return
+
+        # Create ticket with first message as subject
+        ticket = supabase_insert('support_tickets', {
+            'user_id': user_id,
+            'subject': message.text[:50] + ('...' if len(message.text) > 50 else ''),
         })
-        supabase_update('support_tickets', {'status': 'in_progress'}, f'id=eq.{ticket_id}')
 
-        tickets = supabase_get('support_tickets', f'id=eq.{ticket_id}')
-        user = get_user_info(tickets[0]['user_id']) if tickets else {}
+        # Save message
+        supabase_insert('support_messages', {
+            'ticket_id': ticket['id'],
+            'sender': 'user',
+            'message': message.text,
+            'telegram_id': message.chat.id,
+        })
+
+        # Notify admin
         username = user.get('username', 'unknown')
+        first_name = user.get('first_name', '')
+        await message.answer(
+            '✅ Обращение создано!\n\n'
+            'Мы ответим вам в ближайшее время.\n'
+            'Также вы можете написать через приложение.'
+        )
 
-        await message.answer(f'Отправлено в #{ticket_id} (@{username})')
+        # Notify admin
+        try:
+            admin_text = (
+                f'Новое обращение #{ticket["id"]}\n'
+                f'Пользователь: {first_name} (@{username})\n'
+                f'TG ID: {message.chat.id}\n\n'
+                f'"{message.text}"\n\n'
+                f'Ответить: /reply {ticket["id"]} <текст>'
+            )
+            # Send to admin via bot
+            from aiogram import Bot
+            bot = message.bot
+            await bot.send_message(chat_id=ADMIN_CHAT_ID, text=admin_text)
+            active_ticket_by_admin[ADMIN_CHAT_ID] = ticket['id']
+        except Exception as e:
+            logger.error(f'Admin notify error: {e}')
+
     except Exception as e:
-        logger.error(f'Message error: {e}')
-        await message.answer(f'Ошибка: {e}')
+        logger.error(f'User message error: {e}')
+        await message.answer('Произошла ошибка. Попробуйте позже.')
 
 
 async def poll_new_messages(bot: Bot):
