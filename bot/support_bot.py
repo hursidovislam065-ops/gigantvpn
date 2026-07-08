@@ -114,13 +114,13 @@ def marzban_api(method: str, endpoint: str, data: dict = None) -> dict:
         return {'error': str(e)}
 
 def create_vpn_user(username: str, data_limit: int = 1073741824) -> dict:
-    """Create a VPN user in Marzban with VLESS protocol."""
+    """Create a VPN user in Marzban with VLESS Reality protocol."""
     return marzban_api('POST', 'user', {
         'username': username,
         'data_limit': data_limit,
         'expire': 0,
         'proxies': {'vless': {}},
-        'inbounds': {'vless': ['VLESS WS']},
+        'inbounds': {'vless': ['VLESS Reality']},
     })
 
 def get_vpn_user(username: str) -> dict:
