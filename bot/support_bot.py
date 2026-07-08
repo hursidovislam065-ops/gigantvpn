@@ -493,11 +493,13 @@ async def main():
     # Get Marzban token on startup
     get_marzban_token()
 
-    # Disable proxy env vars for httpx
-    for var in ['http_proxy', 'https_proxy', 'HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'all_proxy', 'SOCKS_PROXY']:
-        os.environ.pop(var, None)
+    # SOCKS proxy
+    SOCKS_PROXY = os.getenv('SOCKS_PROXY', 'socks4://127.0.0.1:10808')
 
-    bot = Bot(token=BOT_TOKEN)
+    # Create session with SOCKS proxy
+    session = AiohttpSession(proxy=SOCKS_PROXY)
+
+    bot = Bot(token=BOT_TOKEN, session=session)
     dp = Dispatcher()
     dp.include_router(router)
 
